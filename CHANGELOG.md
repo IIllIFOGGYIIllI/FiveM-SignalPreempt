@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.1.9
+- Fixed a Lua syntax error in `config.lua` caused by an uncommented `03a/03b are kept here` note.
+- Restored normal loading of the shared configuration and client script.
+- No traffic-light detection, acquisition-distance, or override behaviour was otherwise changed from v0.1.8.
+
 ## v0.1.8
 - Used `/spinspect` field data to isolate the remaining low-mounted ghost lamp to actively overridden `prop_traffic_01d` pole assemblies.
 - `prop_traffic_01d` is now detection-only and is explicitly reset instead of being forced by `SET_ENTITY_TRAFFICLIGHT_OVERRIDE`.

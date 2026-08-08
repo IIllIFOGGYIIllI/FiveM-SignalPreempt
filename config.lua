@@ -81,8 +81,7 @@ Config.Signals = {
     -- headings rotated 90 degrees relative to traffic flow, set this to false.
     SignalHeadingParallelToTraffic = true,
 
-    -- Models used to *detect* signalised intersections.
-03a/03b are kept here
+    -- Models used to *detect* signalised intersections. 03a/03b are kept here
     -- because they are useful landmarks for intersection acquisition.
     DetectionModels = {
         'prop_traffic_01a',
