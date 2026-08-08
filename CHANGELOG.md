@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.1.8
+- Used `/spinspect` field data to isolate the remaining low-mounted ghost lamp to actively overridden `prop_traffic_01d` pole assemblies.
+- `prop_traffic_01d` is now detection-only and is explicitly reset instead of being forced by `SET_ENTITY_TRAFFICLIGHT_OVERRIDE`.
+- Active signal override is limited to `prop_traffic_01a` and `prop_traffic_01b`.
+- Added `prop_traffic_lightset_01` to the reset/inspection set so hidden traffic-light support props can be identified without influencing intersection detection.
+- Removed the ineffective entity-light and particle-FX suppression workarounds from v0.1.6/v0.1.7.
+- Kept v0.1.3 acquisition timing and AI traffic control unchanged.
+
+## v0.1.7
+- Fixed the next rendering layer behind the low-mounted green/amber ghost glow.
+- Controlled traffic-light props now remove particle FX attached to that entity while the native traffic-light override is active.
+- Keeps particle cleanup entity-scoped so unrelated map/resource effects are not touched.
+- Normal GTA rendering is handed back on reset; entity light spots are still restored as before.
+- Added `/spinspect` to print the exact nearby traffic-light model names, hashes, coordinates, and whether SignalPreempt is allowed to override them.
+- Kept v0.1.3 acquisition distance/tuning unchanged.
+
 ## v0.1.6
 - Reworked traffic-light rendering to address the low-mounted green/amber glow created by forced traffic-light entities.
 - SignalPreempt now suppresses each controlled prop's auxiliary entity light spots/coronas while its traffic-light state is overridden, while keeping the traffic-light emissive state controlled by GTA.

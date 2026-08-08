@@ -1,4 +1,4 @@
-# SignalPreempt v0.1.6
+# SignalPreempt v0.1.7
 
 Standalone emergency vehicle traffic signal pre-emption for FiveM.
 
@@ -42,7 +42,9 @@ This is intended to reduce interference with scripted pursuits and other mission
 
 Run `/spdebug` to toggle local intersection diagnostics when `Config.Debug.AllowCommand` is enabled.
 
-Run `/spcleanup` to force-reset all currently loaded traffic-light overrides and restore their entity lights during testing.
+Run `/spcleanup` to force-reset all currently loaded SignalPreempt traffic-light overrides during testing.
+
+Run `/spinspect` near a junction to print the exact loaded traffic-light models, hashes, coordinates, and whether each model is in SignalPreempt's override set.
 
 Debug mode shows the detected intersection centre, priority axis, phase, and signal classification.
 
@@ -82,4 +84,14 @@ SignalPreempt continues to use GTA vehicle-node traffic-light flags for early lo
 
 
 ## Traffic-light compatibility
-The default override set remains `prop_traffic_01a`, `prop_traffic_01b`, and `prop_traffic_01d`; integrated `03a` / `03b` assemblies remain detection-only. AI cross-traffic control remains independent. During testing, `/spcleanup` can reset all currently loaded traffic-light overrides and restore their entity lights without restarting FiveM.
+The default override set is now limited to `prop_traffic_01a` and `prop_traffic_01b`. `prop_traffic_01d`, `03a`, and `03b` remain usable for detection but are not forced, because field testing showed the 01d pole assembly can expose a low-mounted ghost lamp when the entire entity is overridden. AI cross-traffic control remains independent.
+
+
+## v0.1.7 ghost-light suppression
+
+The GTA traffic-light override native can activate more than the visible signal material on some vanilla traffic-light archetypes. v0.1.7 therefore suppresses both the entity light spots and particle FX attached to a traffic-light object while it is forced. Cleanup is entity-scoped to avoid removing unrelated visual effects in the area.
+
+
+## v0.1.8 01d compatibility change
+
+Field inspection identified `prop_traffic_01d` as the closest actively overridden model at intersections showing the low-mounted green ghost lamp. SignalPreempt now leaves 01d rendering under GTA control and only forces 01a/01b vehicle-signal props. This is intentionally conservative: correct, clean signal rendering is preferred over forcing every auxiliary signal head.

@@ -81,14 +81,8 @@ Config.Signals = {
     -- headings rotated 90 degrees relative to traffic flow, set this to false.
     SignalHeadingParallelToTraffic = true,
 
-    -- GTA traffic-signal props also contain light-spot/corona emitters. When an
-    -- entity is forced with SET_ENTITY_TRAFFICLIGHT_OVERRIDE, some map variants
-    -- can expose an extra low-mounted glow on the pole. Keep the signal's
-    -- emissive face under the traffic-light override while suppressing the
-    -- entity light spots during pre-emption. They are restored on reset.
-    SuppressEntityLightSpots = true,
-
-    -- Models used to *detect* signalised intersections. 03a/03b are kept here
+    -- Models used to *detect* signalised intersections.
+03a/03b are kept here
     -- because they are useful landmarks for intersection acquisition.
     DetectionModels = {
         'prop_traffic_01a',
@@ -98,24 +92,26 @@ Config.Signals = {
         'prop_traffic_03b',
     },
 
-    -- Models that are safe to force with SET_ENTITY_TRAFFICLIGHT_OVERRIDE.
-    -- The 03a/03b assemblies include pedestrian/crosswalk hardware on the pole.
-    -- Forcing the whole entity can expose an orphaned green/amber corona lower down
-    -- the pole even though no vehicle signal head exists there, so they are detected
-    -- but deliberately NOT overridden.
+    -- Only the overhead/primary 01a and 01b props are forced. Field inspection on
+    -- vanilla intersections showed the low ghost lamp belongs to a forced 01d pole
+    -- assembly. The 01d model remains available for intersection detection, but GTA
+    -- keeps control of its rendering so the hidden/auxiliary lamp cannot be exposed.
     OverrideModels = {
         'prop_traffic_01a',
         'prop_traffic_01b',
-        'prop_traffic_01d',
     },
 
-    -- Never force these models. SignalPreempt explicitly resets them near an active
-    -- junction in case an older resource build previously left an override behind.
+    -- Never force these models. They are explicitly reset near an active junction in
+    -- case an older SignalPreempt build left an entity override behind. The beta
+    -- light-set prop is also tracked by /spinspect for diagnostics but is not used for
+    -- intersection detection.
     NoOverrideModels = {
+        'prop_traffic_01d',
         'prop_traffic_02a',
         'prop_traffic_02b',
         'prop_traffic_03a',
         'prop_traffic_03b',
+        'prop_traffic_lightset_01',
     },
 }
 

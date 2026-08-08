@@ -84,15 +84,10 @@ local function applyTrafficLightState(object, state)
         return
     end
 
+    -- Keep rendering changes limited to GTA's traffic-light override itself. v0.1.8
+    -- no longer manipulates generic entity lights or particle FX; those workarounds did
+    -- not remove the 01d ghost lamp and risked touching unrelated effects on the prop.
     SetEntityTrafficlightOverride(object, state)
-
-    if Config.Signals.SuppressEntityLightSpots then
-        -- The override native controls the traffic-signal emissive state, while
-        -- SET_ENTITY_LIGHTS controls the prop's auxiliary light spots/coronas.
-        -- Suppressing those spots prevents the low-mounted 'ghost' green/amber
-        -- glow visible on some pole assemblies during a forced state.
-        SetEntityLights(object, state == Config.Signals.ResetState)
-    end
 end
 
 local function resetAllLoadedTrafficLights()
@@ -105,7 +100,6 @@ local function resetAllLoadedTrafficLights()
                 or overrideLightModelHashes[model]
                 or noOverrideLightModelHashes[model] then
                 applyTrafficLightState(object, Config.Signals.ResetState)
-                SetEntityLights(object, true)
                 resetCount = resetCount + 1
             end
         end
@@ -923,6 +917,51 @@ end
 RegisterCommand('spcleanup', function()
     local count = resetAllLoadedTrafficLights()
     print(('[SignalPreempt] Reset %d loaded traffic-light objects.'):format(count))
+end, false)
+
+RegisterCommand('spinspect', function()
+    local playerCoords = GetEntityCoords(PlayerPedId())
+    local entries = {}
+
+    for _, object in ipairs(GetGamePool('CObject')) do
+        if DoesEntityExist(object) then
+            local model = GetEntityModel(object)
+            if detectionLightModelHashes[model]
+                or overrideLightModelHashes[model]
+                or noOverrideLightModelHashes[model] then
+                local coords = GetEntityCoords(object)
+                local distance = distance3D(coords, playerCoords)
+                if distance <= 90.0 then
+                    entries[#entries + 1] = {
+                        object = object,
+                        model = model,
+                        name = lightModelNames[model] or tostring(model),
+                        coords = coords,
+                        distance = distance,
+                        overridden = overrideLightModelHashes[model] == true,
+                    }
+                end
+            end
+        end
+    end
+
+    table.sort(entries, function(a, b)
+        return a.distance < b.distance
+    end)
+
+    print(('[SignalPreempt] Nearby traffic-light objects: %d'):format(#entries))
+    for _, entry in ipairs(entries) do
+        print(('[SignalPreempt] %s hash=%s entity=%s dist=%.1fm override=%s @ %.2f %.2f %.2f'):format(
+            entry.name,
+            tostring(entry.model),
+            tostring(entry.object),
+            entry.distance,
+            entry.overridden and 'yes' or 'no',
+            entry.coords.x,
+            entry.coords.y,
+            entry.coords.z
+        ))
+    end
 end, false)
 
 -- Keep the approach road nodes requested every frame while an eligible emergency
