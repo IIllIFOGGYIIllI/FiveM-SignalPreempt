@@ -7,6 +7,7 @@ local lastRequestRefresh = 0
 local lastLightPoolRefresh = 0
 local nearbyLights = {}
 local lightModelHashes = {}
+local ignoredLightModelHashes = {}
 local lastSignalApply = 0
 local lastAITraffic = 0
 
@@ -52,8 +53,26 @@ end
 
 local function buildModelHashSet()
     lightModelHashes = {}
+    ignoredLightModelHashes = {}
+
     for _, modelName in ipairs(Config.Signals.LightModels) do
         lightModelHashes[GetHashKey(modelName)] = true
+    end
+
+    for _, modelName in ipairs(Config.Signals.IgnoredLightModels or {}) do
+        ignoredLightModelHashes[GetHashKey(modelName)] = true
+    end
+end
+
+local function resetIgnoredTrafficLightOverrides()
+    if not next(ignoredLightModelHashes) then
+        return
+    end
+
+    for _, object in ipairs(GetGamePool('CObject')) do
+        if DoesEntityExist(object) and ignoredLightModelHashes[GetEntityModel(object)] then
+            SetEntityTrafficlightOverride(object, Config.Signals.ResetState)
+        end
     end
 end
 
@@ -868,6 +887,7 @@ end)
 
 CreateThread(function()
     buildModelHashSet()
+    resetIgnoredTrafficLightOverrides()
     Wait(1000)
     TriggerServerEvent('SignalPreempt:server:sync')
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.1.4
+
+- Removed `prop_traffic_02a` and `prop_traffic_02b` from the active traffic-light override set.
+- These legacy/beta signal assets can expose orphaned green/yellow emissive bulbs near pole bases when forced by GTA's traffic-light override native.
+- Added a one-time client startup reset for the ignored signal models so ghost lamps left by an older build are cleared after restart.
+- Kept the standard in-world signal props (`01a`, `01b`, `01d`, `03a`, `03b`) under SignalPreempt control.
+
 ## v0.1.3
 
 - Improved early intersection acquisition by requesting GTA path nodes along the emergency vehicle's approach corridor each frame while the emitter is active.

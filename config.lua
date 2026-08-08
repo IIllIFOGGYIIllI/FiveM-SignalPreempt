@@ -81,14 +81,22 @@ Config.Signals = {
     -- headings rotated 90 degrees relative to traffic flow, set this to false.
     SignalHeadingParallelToTraffic = true,
 
+    -- Only the five normal in-world vehicle-signal props are overridden.
+    -- prop_traffic_02a / prop_traffic_02b are legacy/beta signal assets that can
+    -- expose orphaned emissive bulbs when forced with SET_ENTITY_TRAFFICLIGHT_OVERRIDE.
     LightModels = {
         'prop_traffic_01a',
         'prop_traffic_01b',
         'prop_traffic_01d',
-        'prop_traffic_02a',
-        'prop_traffic_02b',
         'prop_traffic_03a',
         'prop_traffic_03b',
+    },
+
+    -- These models are deliberately excluded from pre-emption and reset once when
+    -- the client starts so a restart from an older build cannot leave a ghost light.
+    IgnoredLightModels = {
+        'prop_traffic_02a',
+        'prop_traffic_02b',
     },
 }
 
