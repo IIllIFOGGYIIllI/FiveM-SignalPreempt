@@ -1,4 +1,4 @@
-# SignalPreempt v0.1.4
+# SignalPreempt v0.1.5
 
 Standalone emergency vehicle traffic signal pre-emption for FiveM.
 
@@ -74,6 +74,10 @@ The main values to tune first are in `config.lua`:
 If traffic signals on a custom map appear to classify the wrong roadway as green, switch `Config.Signals.SignalHeadingParallelToTraffic` to `false` and test again.
 
 
-## v0.1.4 signal-model cleanup
+## v0.1.5 signal-model cleanup
 
-SignalPreempt continues to use GTA vehicle-node traffic-light flags for early look-ahead, but v0.1.4 restricts visual overrides to the five normal in-world vehicle-signal props. The legacy `prop_traffic_02a` and `prop_traffic_02b` assets are ignored and reset on client startup because forcing them can reveal orphaned emissive bulbs near traffic-light pole bases.
+SignalPreempt continues to use GTA vehicle-node traffic-light flags for early look-ahead, but v0.1.5 restricts visual overrides to the five normal in-world vehicle-signal props. The legacy `prop_traffic_02a` and `prop_traffic_02b` assets are ignored and reset on client startup because forcing them can reveal orphaned emissive bulbs near traffic-light pole bases.
+
+
+## Traffic-light compatibility
+SignalPreempt v0.1.5 detects the full vanilla signal set but only forces the vehicle-signal-only props by default. Integrated `prop_traffic_03a` / `prop_traffic_03b` assemblies are left under GTA control because overriding those whole entities can render orphaned pole-mounted emissive coronas. AI cross-traffic control remains active independently.

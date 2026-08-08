@@ -81,10 +81,9 @@ Config.Signals = {
     -- headings rotated 90 degrees relative to traffic flow, set this to false.
     SignalHeadingParallelToTraffic = true,
 
-    -- Only the five normal in-world vehicle-signal props are overridden.
-    -- prop_traffic_02a / prop_traffic_02b are legacy/beta signal assets that can
-    -- expose orphaned emissive bulbs when forced with SET_ENTITY_TRAFFICLIGHT_OVERRIDE.
-    LightModels = {
+    -- Models used to *detect* signalised intersections. 03a/03b are kept here
+    -- because they are useful landmarks for intersection acquisition.
+    DetectionModels = {
         'prop_traffic_01a',
         'prop_traffic_01b',
         'prop_traffic_01d',
@@ -92,11 +91,24 @@ Config.Signals = {
         'prop_traffic_03b',
     },
 
-    -- These models are deliberately excluded from pre-emption and reset once when
-    -- the client starts so a restart from an older build cannot leave a ghost light.
-    IgnoredLightModels = {
+    -- Models that are safe to force with SET_ENTITY_TRAFFICLIGHT_OVERRIDE.
+    -- The 03a/03b assemblies include pedestrian/crosswalk hardware on the pole.
+    -- Forcing the whole entity can expose an orphaned green/amber corona lower down
+    -- the pole even though no vehicle signal head exists there, so they are detected
+    -- but deliberately NOT overridden.
+    OverrideModels = {
+        'prop_traffic_01a',
+        'prop_traffic_01b',
+        'prop_traffic_01d',
+    },
+
+    -- Never force these models. SignalPreempt explicitly resets them near an active
+    -- junction in case an older resource build previously left an override behind.
+    NoOverrideModels = {
         'prop_traffic_02a',
         'prop_traffic_02b',
+        'prop_traffic_03a',
+        'prop_traffic_03b',
     },
 }
 

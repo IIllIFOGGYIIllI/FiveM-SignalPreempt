@@ -3,7 +3,7 @@ game 'gta5'
 
 author 'SignalPreempt'
 description 'Standalone emergency vehicle traffic signal pre-emption for FiveM'
-version '0.1.4'
+version '0.1.5'
 
 shared_script 'config.lua'
 

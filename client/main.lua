@@ -6,8 +6,10 @@ local blockedUntil = 0
 local lastRequestRefresh = 0
 local lastLightPoolRefresh = 0
 local nearbyLights = {}
-local lightModelHashes = {}
-local ignoredLightModelHashes = {}
+local detectionLightModelHashes = {}
+local overrideLightModelHashes = {}
+local noOverrideLightModelHashes = {}
+local lightModelNames = {}
 local lastSignalApply = 0
 local lastAITraffic = 0
 
@@ -51,27 +53,42 @@ local function logDebug(message)
     end
 end
 
-local function buildModelHashSet()
-    lightModelHashes = {}
-    ignoredLightModelHashes = {}
+local function addNamedModel(set, modelName)
+    local hash = GetHashKey(modelName)
+    set[hash] = true
+    lightModelNames[hash] = modelName
+end
 
-    for _, modelName in ipairs(Config.Signals.LightModels) do
-        lightModelHashes[GetHashKey(modelName)] = true
+local function buildModelHashSet()
+    detectionLightModelHashes = {}
+    overrideLightModelHashes = {}
+    noOverrideLightModelHashes = {}
+    lightModelNames = {}
+
+    for _, modelName in ipairs(Config.Signals.DetectionModels or {}) do
+        addNamedModel(detectionLightModelHashes, modelName)
     end
 
-    for _, modelName in ipairs(Config.Signals.IgnoredLightModels or {}) do
-        ignoredLightModelHashes[GetHashKey(modelName)] = true
+    for _, modelName in ipairs(Config.Signals.OverrideModels or {}) do
+        addNamedModel(overrideLightModelHashes, modelName)
+        detectionLightModelHashes[GetHashKey(modelName)] = true
+    end
+
+    for _, modelName in ipairs(Config.Signals.NoOverrideModels or {}) do
+        addNamedModel(noOverrideLightModelHashes, modelName)
     end
 end
 
-local function resetIgnoredTrafficLightOverrides()
-    if not next(ignoredLightModelHashes) then
+local function resetNoOverrideTrafficLights(center, radius)
+    if not next(noOverrideLightModelHashes) then
         return
     end
 
     for _, object in ipairs(GetGamePool('CObject')) do
-        if DoesEntityExist(object) and ignoredLightModelHashes[GetEntityModel(object)] then
-            SetEntityTrafficlightOverride(object, Config.Signals.ResetState)
+        if DoesEntityExist(object) and noOverrideLightModelHashes[GetEntityModel(object)] then
+            if not center or distance3D(GetEntityCoords(object), center) <= radius then
+                SetEntityTrafficlightOverride(object, Config.Signals.ResetState)
+            end
         end
     end
 end
@@ -87,7 +104,7 @@ local function refreshNearbyLights(origin)
 
     local pool = GetGamePool('CObject')
     for _, object in ipairs(pool) do
-        if DoesEntityExist(object) and lightModelHashes[GetEntityModel(object)] then
+        if DoesEntityExist(object) and detectionLightModelHashes[GetEntityModel(object)] then
             local coords = GetEntityCoords(object)
             if distance3D(coords, origin) <= Config.Performance.LightPoolRadius then
                 nearbyLights[#nearbyLights + 1] = object
@@ -116,7 +133,7 @@ local function fallbackProbeTrafficLights(vehicleCoords, fx, fy)
         local sampleX = vehicleCoords.x + (fx * distance)
         local sampleY = vehicleCoords.y + (fy * distance)
 
-        for modelHash in pairs(lightModelHashes) do
+        for modelHash in pairs(detectionLightModelHashes) do
             local object = GetClosestObjectOfType(
                 sampleX,
                 sampleY,
@@ -470,7 +487,7 @@ local function findLightsForIntersection(intersection)
 
     local lights = {}
     for _, light in ipairs(nearbyLights) do
-        if DoesEntityExist(light) then
+        if DoesEntityExist(light) and overrideLightModelHashes[GetEntityModel(light)] then
             local coords = GetEntityCoords(light)
             if distance3D(coords, intersection.center) <= Config.Detection.ClusterRadius + 4.0 then
                 lights[#lights + 1] = light
@@ -499,6 +516,14 @@ local function applySignalStates()
 
     for _, intersection in pairs(activeIntersections) do
         if distance3D(playerCoords, intersection.center) <= Config.Performance.LightPoolRadius then
+            -- Keep integrated pedestrian/crosswalk assemblies under GTA control.
+            -- This prevents the low pole-mounted ghost green/amber coronas produced
+            -- when the entire 03a/03b object is forced as a vehicle traffic light.
+            resetNoOverrideTrafficLights(
+                intersection.center,
+                Config.Detection.ClusterRadius + 6.0
+            )
+
             if not intersection.lights or nowMs() - (intersection.lastLightResolve or 0) > 2500 then
                 intersection.lights = findLightsForIntersection(intersection)
                 intersection.lastLightResolve = nowMs()
@@ -754,7 +779,9 @@ local function drawDebug()
             for _, light in ipairs(lights) do
                 if DoesEntityExist(light) then
                     local green = intersection.phase == 'priority' and signalShouldBeGreen(light, intersection)
-                    local label = green and '[G]' or '[R]'
+                    local modelName = lightModelNames[GetEntityModel(light)] or 'traffic'
+                    local suffix = modelName:match('prop_traffic_(.+)') or modelName
+                    local label = (green and '[G]' or '[R]') .. ' ' .. suffix
                     local r, g, b = green and 70 or 255, green and 255 or 80, green and 90 or 80
                     local debugPoint = getTrafficLightDebugPoint(light)
                     drawText3D(debugPoint, label, r, g, b, 235)
@@ -887,7 +914,7 @@ end)
 
 CreateThread(function()
     buildModelHashSet()
-    resetIgnoredTrafficLightOverrides()
+    resetNoOverrideTrafficLights(nil, math.huge)
     Wait(1000)
     TriggerServerEvent('SignalPreempt:server:sync')
 

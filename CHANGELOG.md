@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.1.5
+- Separated traffic-light detection models from models that are actually overridden.
+- `prop_traffic_03a` and `prop_traffic_03b` remain usable for intersection detection but are no longer forced with `SET_ENTITY_TRAFFICLIGHT_OVERRIDE`.
+- Prevents orphaned green/amber coronas appearing low on traffic-signal poles where no vehicle signal head exists.
+- Resets excluded signal assemblies around active intersections so stale overrides from older builds are cleared.
+- Debug signal labels now include the traffic-light model suffix to make future model-specific issues easier to identify.
+
 ## v0.1.4
 
 - Removed `prop_traffic_02a` and `prop_traffic_02b` from the active traffic-light override set.
