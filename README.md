@@ -1,4 +1,4 @@
-# SignalPreempt v0.1.2
+# SignalPreempt v0.1.3
 
 Standalone emergency vehicle traffic signal pre-emption for FiveM.
 
@@ -74,6 +74,6 @@ The main values to tune first are in `config.lua`:
 If traffic signals on a custom map appear to classify the wrong roadway as green, switch `Config.Signals.SignalHeadingParallelToTraffic` to `false` and test again.
 
 
-## v0.1.2 detection update
+## v0.1.3 detection update
 
 SignalPreempt now uses GTA vehicle-node traffic-light flags as an early look-ahead source. This allows it to acquire a signalised junction before the physical traffic-light objects are close enough to appear in the normal client object pool. Debug mode also uses text labels rather than large coloured sphere markers.

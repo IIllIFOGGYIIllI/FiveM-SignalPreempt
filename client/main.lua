@@ -212,34 +212,74 @@ local function getClosestVehicleNodePosition(x, y, z)
     return nil
 end
 
+local function requestApproachPathNodes(vehicleCoords, fx, fy)
+    if not Config.Detection.RequestPathNodesAhead then
+        return
+    end
+
+    local requestDistance = Config.Detection.MaxAcquireDistance
+        + (Config.Detection.PathRequestExtraDistance or 0.0)
+    local padding = Config.Detection.PathRequestPadding or 40.0
+    local endX = vehicleCoords.x + (fx * requestDistance)
+    local endY = vehicleCoords.y + (fy * requestDistance)
+
+    local minX = math.min(vehicleCoords.x, endX) - padding
+    local minY = math.min(vehicleCoords.y, endY) - padding
+    local maxX = math.max(vehicleCoords.x, endX) + padding
+    local maxY = math.max(vehicleCoords.y, endY) + padding
+
+    -- REQUEST_PATH_NODES_IN_AREA_THIS_FRAME is the current native name. The older
+    -- FiveM alias is retained as a fallback so the resource remains tolerant of
+    -- artifact/native naming differences.
+    if RequestPathNodesInAreaThisFrame then
+        pcall(RequestPathNodesInAreaThisFrame, minX, minY, maxX, maxY)
+    elseif RequestPathsPreferAccurateBoundingstruct then
+        pcall(RequestPathsPreferAccurateBoundingstruct, minX, minY, maxX, maxY)
+    end
+end
+
 local function detectTrafficLightNodeAhead(vehicleCoords, fx, fy)
     if not Config.Detection.UseTrafficLightNodes then
         return nil
     end
 
+    requestApproachPathNodes(vehicleCoords, fx, fy)
+
     local probeDistance = math.max(
         Config.Detection.MinAcquireDistance,
         Config.Detection.NodeProbeStartDistance or Config.Detection.MinAcquireDistance
     )
-    local probeStep = math.max(5.0, Config.Detection.NodeProbeStep or 10.0)
+    local probeStep = math.max(4.0, Config.Detection.NodeProbeStep or 8.0)
     local trafficLightFlag = Config.Detection.TrafficLightNodeFlag or 256
+    local lateralOffsets = Config.Detection.NodeLateralOffsets or { 0.0 }
+
+    -- Right-hand vector relative to the emergency vehicle's direction of travel.
+    local rx, ry = -fy, fx
 
     while probeDistance <= Config.Detection.MaxAcquireDistance do
-        local sampleX = vehicleCoords.x + (fx * probeDistance)
-        local sampleY = vehicleCoords.y + (fy * probeDistance)
+        for _, lateralOffset in ipairs(lateralOffsets) do
+            local sampleX = vehicleCoords.x + (fx * probeDistance) + (rx * lateralOffset)
+            local sampleY = vehicleCoords.y + (fy * probeDistance) + (ry * lateralOffset)
 
-        local ok, valid, _, flags = pcall(
-            GetVehicleNodeProperties,
-            sampleX,
-            sampleY,
-            vehicleCoords.z
-        )
+            local ok, valid, _, flags = pcall(
+                GetVehicleNodeProperties,
+                sampleX,
+                sampleY,
+                vehicleCoords.z
+            )
 
-        if ok and valid and hasFlag(flags, trafficLightFlag) then
-            local node = getClosestVehicleNodePosition(sampleX, sampleY, vehicleCoords.z)
-            if node then
-                local dx = node.x - vehicleCoords.x
-                local dy = node.y - vehicleCoords.y
+            if ok and valid and hasFlag(flags, trafficLightFlag) then
+                local node = getClosestVehicleNodePosition(sampleX, sampleY, vehicleCoords.z)
+
+                -- GetVehicleNodeProperties can succeed slightly before an exact node
+                -- position is available. In that case the probe point itself is a
+                -- better provisional stop-line estimate than throwing the detection away.
+                local nodeX = node and node.x or sampleX
+                local nodeY = node and node.y or sampleY
+                local nodeZ = node and node.z or vehicleCoords.z
+
+                local dx = nodeX - vehicleCoords.x
+                local dy = nodeY - vehicleCoords.y
                 local longitudinal = dot2(dx, dy, fx, fy)
                 local lateral = math.abs((dx * fy) - (dy * fx))
 
@@ -249,9 +289,9 @@ local function detectTrafficLightNodeAhead(vehicleCoords, fx, fy)
 
                     local centerOffset = Config.Detection.NodeCenterForwardOffset or 0.0
                     local center = {
-                        x = node.x + (fx * centerOffset),
-                        y = node.y + (fy * centerOffset),
-                        z = node.z,
+                        x = nodeX + (fx * centerOffset),
+                        y = nodeY + (fy * centerOffset),
+                        z = nodeZ,
                     }
 
                     return {
@@ -259,7 +299,7 @@ local function detectTrafficLightNodeAhead(vehicleCoords, fx, fy)
                         center = center,
                         axis = { x = fx, y = fy },
                         lights = {},
-                        source = 'traffic_light_node',
+                        source = node and 'traffic_light_node' or 'traffic_light_probe',
                     }
                 end
             end
@@ -798,6 +838,33 @@ if Config.Debug.AllowCommand then
         print(('[SignalPreempt] Debug %s'):format(debugEnabled and 'enabled' or 'disabled'))
     end, false)
 end
+
+-- Keep the approach road nodes requested every frame while an eligible emergency
+-- vehicle is active. GTA's path-node request native is explicitly frame-scoped.
+CreateThread(function()
+    while true do
+        if Config.Enabled and Config.Detection.RequestPathNodesAhead then
+            local ped = PlayerPedId()
+            local vehicle = GetVehiclePedIsIn(ped, false)
+
+            if vehicle ~= 0 and isQualifiedEmergencyVehicle(ped, vehicle) then
+                local coords = GetEntityCoords(vehicle)
+                local forward = GetEntityForwardVector(vehicle)
+                local fx, fy = normalize2(forward.x, forward.y)
+
+                if fx ~= 0.0 or fy ~= 0.0 then
+                    requestApproachPathNodes(coords, fx, fy)
+                end
+
+                Wait(0)
+            else
+                Wait(200)
+            end
+        else
+            Wait(500)
+        end
+    end
+end)
 
 CreateThread(function()
     buildModelHashSet()

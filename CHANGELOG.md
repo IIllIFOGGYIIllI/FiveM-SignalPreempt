@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.1.3
+
+- Improved early intersection acquisition by requesting GTA path nodes along the emergency vehicle's approach corridor each frame while the emitter is active.
+- Changed node probing from one centreline to a multi-lane corridor with lateral probes, reducing missed signal nodes on wide roads.
+- Added a safe provisional-centre fallback when a traffic-light node flag is available before an exact node position can be resolved.
+- Tuned the effective pre-emption range for a noticeably earlier but not excessive trigger distance.
+- Increased the local signal-resolution radius and matching server validation distance for the earlier lock.
+
 ## v0.1.2
 
 - Added traffic-light road-node look-ahead so signalised intersections can be acquired before their physical props are fully streamed.

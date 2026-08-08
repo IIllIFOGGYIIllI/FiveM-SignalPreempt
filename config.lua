@@ -27,7 +27,7 @@ Config.Activation = {
 -- Automatic intersection acquisition.
 Config.Detection = {
     -- How far ahead SignalPreempt starts looking for a signalised junction.
-    MaxAcquireDistance = 240.0,
+    MaxAcquireDistance = 210.0,
     MinAcquireDistance = 10.0,
     MaxLateralOffset = 38.0,
     LateralPenalty = 2.25,
@@ -40,8 +40,19 @@ Config.Detection = {
     -- physical traffic-light props have streamed into the client's object pool.
     UseTrafficLightNodes = true,
     TrafficLightNodeFlag = 256, -- eVehicleNodeProperties.TRAFFIC_LIGHT (1 << 8)
-    NodeProbeStartDistance = 32.0,
-    NodeProbeStep = 10.0,
+
+    -- Ask GTA to keep the road/path nodes in the approach corridor available while an
+    -- eligible emergency vehicle is responding. This makes the node look-ahead useful
+    -- before the physical traffic-light props enter the local object pool.
+    RequestPathNodesAhead = true,
+    PathRequestExtraDistance = 35.0,
+    PathRequestPadding = 42.0,
+
+    -- Probe the road corridor rather than only a single centreline. Multi-lane roads
+    -- often place the traffic-light node on an adjacent lane.
+    NodeProbeStartDistance = 24.0,
+    NodeProbeStep = 6.0,
+    NodeLateralOffsets = { 0.0, 7.0, -7.0, 14.0, -14.0 },
     NodeSearchType = 1,
     NodeSearchParam = 3.0,
 
@@ -104,7 +115,7 @@ Config.AITraffic = {
 Config.Server = {
     LeaseSeconds = 4,
     RefreshMs = 1000,
-    MaxRequestDistance = 260.0,
+    MaxRequestDistance = 285.0,
     SameRoadAlignmentThreshold = 0.65,
 
     -- Optional ACE gate. Example server.cfg line when enabled:
@@ -116,7 +127,7 @@ Config.Server = {
 Config.Performance = {
     ClientTickMs = 150,
     LightPoolRefreshMs = 900,
-    LightPoolRadius = 285.0,
+    LightPoolRadius = 320.0,
     SignalApplyMs = 200,
     AITrafficMs = 250,
 }
