@@ -79,6 +79,41 @@ local function buildModelHashSet()
     end
 end
 
+local function applyTrafficLightState(object, state)
+    if object == 0 or not DoesEntityExist(object) then
+        return
+    end
+
+    SetEntityTrafficlightOverride(object, state)
+
+    if Config.Signals.SuppressEntityLightSpots then
+        -- The override native controls the traffic-signal emissive state, while
+        -- SET_ENTITY_LIGHTS controls the prop's auxiliary light spots/coronas.
+        -- Suppressing those spots prevents the low-mounted 'ghost' green/amber
+        -- glow visible on some pole assemblies during a forced state.
+        SetEntityLights(object, state == Config.Signals.ResetState)
+    end
+end
+
+local function resetAllLoadedTrafficLights()
+    local resetCount = 0
+
+    for _, object in ipairs(GetGamePool('CObject')) do
+        if DoesEntityExist(object) then
+            local model = GetEntityModel(object)
+            if detectionLightModelHashes[model]
+                or overrideLightModelHashes[model]
+                or noOverrideLightModelHashes[model] then
+                applyTrafficLightState(object, Config.Signals.ResetState)
+                SetEntityLights(object, true)
+                resetCount = resetCount + 1
+            end
+        end
+    end
+
+    return resetCount
+end
+
 local function resetNoOverrideTrafficLights(center, radius)
     if not next(noOverrideLightModelHashes) then
         return
@@ -87,7 +122,7 @@ local function resetNoOverrideTrafficLights(center, radius)
     for _, object in ipairs(GetGamePool('CObject')) do
         if DoesEntityExist(object) and noOverrideLightModelHashes[GetEntityModel(object)] then
             if not center or distance3D(GetEntityCoords(object), center) <= radius then
-                SetEntityTrafficlightOverride(object, Config.Signals.ResetState)
+                applyTrafficLightState(object, Config.Signals.ResetState)
             end
         end
     end
@@ -540,7 +575,7 @@ local function applySignalStates()
                         state = Config.Signals.RedState
                     end
 
-                    SetEntityTrafficlightOverride(light, state)
+                    applyTrafficLightState(light, state)
                     intersection.lastStates = intersection.lastStates or {}
                     intersection.lastStates[light] = state
                 end
@@ -557,10 +592,10 @@ local function recoverAndResetIntersection(intersection)
         if DoesEntityExist(light) then
             local previousState = intersection.lastStates and intersection.lastStates[light]
             if previousState == Config.Signals.GreenState then
-                SetEntityTrafficlightOverride(light, Config.Signals.YellowState)
+                applyTrafficLightState(light, Config.Signals.YellowState)
                 yellowLights[#yellowLights + 1] = light
             else
-                SetEntityTrafficlightOverride(light, Config.Signals.RedState)
+                applyTrafficLightState(light, Config.Signals.RedState)
             end
         end
     end
@@ -580,7 +615,7 @@ local function recoverAndResetIntersection(intersection)
                 end
 
                 if not claimedByAnotherIntersection then
-                    SetEntityTrafficlightOverride(light, Config.Signals.ResetState)
+                    applyTrafficLightState(light, Config.Signals.ResetState)
                 end
             end
         end
@@ -885,6 +920,11 @@ if Config.Debug.AllowCommand then
     end, false)
 end
 
+RegisterCommand('spcleanup', function()
+    local count = resetAllLoadedTrafficLights()
+    print(('[SignalPreempt] Reset %d loaded traffic-light objects.'):format(count))
+end, false)
+
 -- Keep the approach road nodes requested every frame while an eligible emergency
 -- vehicle is active. GTA's path-node request native is explicitly frame-scoped.
 CreateThread(function()
@@ -914,7 +954,7 @@ end)
 
 CreateThread(function()
     buildModelHashSet()
-    resetNoOverrideTrafficLights(nil, math.huge)
+    resetAllLoadedTrafficLights()
     Wait(1000)
     TriggerServerEvent('SignalPreempt:server:sync')
 
@@ -997,7 +1037,7 @@ AddEventHandler('onResourceStop', function(resourceName)
         local lights = intersection.lights or {}
         for _, light in ipairs(lights) do
             if DoesEntityExist(light) then
-                SetEntityTrafficlightOverride(light, Config.Signals.ResetState)
+                applyTrafficLightState(light, Config.Signals.ResetState)
             end
         end
     end

@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.1.6
+- Reworked traffic-light rendering to address the low-mounted green/amber glow created by forced traffic-light entities.
+- SignalPreempt now suppresses each controlled prop's auxiliary entity light spots/coronas while its traffic-light state is overridden, while keeping the traffic-light emissive state controlled by GTA.
+- Restores normal entity lighting automatically when an intersection is released, the resource stops, or a signal is reset.
+- Startup cleanup now resets all loaded SignalPreempt traffic-light models rather than only previously excluded models.
+- Added `/spcleanup` to manually reset all currently loaded traffic-light overrides and entity light spots during testing.
+- Kept the v0.1.3 intersection acquisition tuning unchanged.
+
 ## v0.1.5
 - Separated traffic-light detection models from models that are actually overridden.
 - `prop_traffic_03a` and `prop_traffic_03b` remain usable for intersection detection but are no longer forced with `SET_ENTITY_TRAFFICLIGHT_OVERRIDE`.

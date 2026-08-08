@@ -81,6 +81,13 @@ Config.Signals = {
     -- headings rotated 90 degrees relative to traffic flow, set this to false.
     SignalHeadingParallelToTraffic = true,
 
+    -- GTA traffic-signal props also contain light-spot/corona emitters. When an
+    -- entity is forced with SET_ENTITY_TRAFFICLIGHT_OVERRIDE, some map variants
+    -- can expose an extra low-mounted glow on the pole. Keep the signal's
+    -- emissive face under the traffic-light override while suppressing the
+    -- entity light spots during pre-emption. They are restored on reset.
+    SuppressEntityLightSpots = true,
+
     -- Models used to *detect* signalised intersections. 03a/03b are kept here
     -- because they are useful landmarks for intersection acquisition.
     DetectionModels = {

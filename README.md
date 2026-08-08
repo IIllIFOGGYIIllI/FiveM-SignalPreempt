@@ -1,4 +1,4 @@
-# SignalPreempt v0.1.5
+# SignalPreempt v0.1.6
 
 Standalone emergency vehicle traffic signal pre-emption for FiveM.
 
@@ -42,6 +42,8 @@ This is intended to reduce interference with scripted pursuits and other mission
 
 Run `/spdebug` to toggle local intersection diagnostics when `Config.Debug.AllowCommand` is enabled.
 
+Run `/spcleanup` to force-reset all currently loaded traffic-light overrides and restore their entity lights during testing.
+
 Debug mode shows the detected intersection centre, priority axis, phase, and signal classification.
 
 ## Custom emergency lighting resources
@@ -74,10 +76,10 @@ The main values to tune first are in `config.lua`:
 If traffic signals on a custom map appear to classify the wrong roadway as green, switch `Config.Signals.SignalHeadingParallelToTraffic` to `false` and test again.
 
 
-## v0.1.5 signal-model cleanup
+## v0.1.6 signal rendering cleanup
 
-SignalPreempt continues to use GTA vehicle-node traffic-light flags for early look-ahead, but v0.1.5 restricts visual overrides to the five normal in-world vehicle-signal props. The legacy `prop_traffic_02a` and `prop_traffic_02b` assets are ignored and reset on client startup because forcing them can reveal orphaned emissive bulbs near traffic-light pole bases.
+SignalPreempt continues to use GTA vehicle-node traffic-light flags for early look-ahead. v0.1.6 also suppresses the auxiliary light spots/coronas on a traffic-light prop while that prop is being forced, then restores normal entity lighting when pre-emption ends. This targets the extra low-mounted green/amber glow that can appear on some vanilla pole assemblies when `SET_ENTITY_TRAFFICLIGHT_OVERRIDE` is active.
 
 
 ## Traffic-light compatibility
-SignalPreempt v0.1.5 detects the full vanilla signal set but only forces the vehicle-signal-only props by default. Integrated `prop_traffic_03a` / `prop_traffic_03b` assemblies are left under GTA control because overriding those whole entities can render orphaned pole-mounted emissive coronas. AI cross-traffic control remains active independently.
+The default override set remains `prop_traffic_01a`, `prop_traffic_01b`, and `prop_traffic_01d`; integrated `03a` / `03b` assemblies remain detection-only. AI cross-traffic control remains independent. During testing, `/spcleanup` can reset all currently loaded traffic-light overrides and restore their entity lights without restarting FiveM.
