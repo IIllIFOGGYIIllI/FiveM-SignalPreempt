@@ -970,6 +970,66 @@ RegisterCommand('spinspect', function()
     end
 end, false)
 
+
+RegisterCommand('spprobe', function()
+    local ped = PlayerPedId()
+    local playerCoords = GetEntityCoords(ped)
+    local target = 0
+    local bestDistance = nil
+    local targetHash = GetHashKey('prop_traffic_01d')
+
+    for _, object in ipairs(GetGamePool('CObject')) do
+        if DoesEntityExist(object) and GetEntityModel(object) == targetHash then
+            local distance = distance3D(GetEntityCoords(object), playerCoords)
+            if distance <= 60.0 and (not bestDistance or distance < bestDistance) then
+                target = object
+                bestDistance = distance
+            end
+        end
+    end
+
+    if target == 0 then
+        print('[SignalPreempt] /spprobe: no prop_traffic_01d found within 60m.')
+        return
+    end
+
+    local coords = GetEntityCoords(target)
+    print(('[SignalPreempt] /spprobe: testing nearest prop_traffic_01d entity=%s dist=%.1fm @ %.2f %.2f %.2f'):format(
+        tostring(target),
+        bestDistance or -1.0,
+        coords.x,
+        coords.y,
+        coords.z
+    ))
+    print('[SignalPreempt] Watch this one signal. Sequence: RESET -> GREEN -> RED -> YELLOW -> RESET.')
+
+    CreateThread(function()
+        applyTrafficLightState(target, Config.Signals.ResetState, true)
+        print('[SignalPreempt] /spprobe state: RESET')
+        Wait(2000)
+
+        if not DoesEntityExist(target) then return end
+        applyTrafficLightState(target, Config.Signals.GreenState, true)
+        print(('[SignalPreempt] /spprobe state: GREEN (%d)'):format(Config.Signals.GreenState))
+        Wait(2500)
+
+        if not DoesEntityExist(target) then return end
+        applyTrafficLightState(target, Config.Signals.RedState, true)
+        print(('[SignalPreempt] /spprobe state: RED (%d)'):format(Config.Signals.RedState))
+        Wait(2500)
+
+        if not DoesEntityExist(target) then return end
+        applyTrafficLightState(target, Config.Signals.YellowState, true)
+        print(('[SignalPreempt] /spprobe state: YELLOW (%d)'):format(Config.Signals.YellowState))
+        Wait(2500)
+
+        if DoesEntityExist(target) then
+            applyTrafficLightState(target, Config.Signals.ResetState, true)
+        end
+        print('[SignalPreempt] /spprobe state: RESET (finished)')
+    end)
+end, false)
+
 RegisterCommand('spstatus', function()
     local ped = PlayerPedId()
     local vehicle = GetVehiclePedIsIn(ped, false)

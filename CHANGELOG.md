@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.1.11
+- Added `/spprobe`, a one-command diagnostic that isolates the nearest `prop_traffic_01d` and cycles it through RESET, GREEN, RED, YELLOW, then RESET.
+- The probe prints each state to F8 so the low-mounted ghost glow can be matched to the exact native override state without changing normal SignalPreempt behaviour.
+- No acquisition-distance, multiplayer, AI traffic, or normal pre-emption logic was changed from v0.1.10.
+- This diagnostic specifically targets the remaining `prop_traffic_01d` rendering issue shown by `/spinspect`.
+
 ## v0.1.10
 - Restored `prop_traffic_01d` to active signal control after v0.1.8/v0.1.9 proved that excluding it leaves many vanilla approach heads on GTA's normal cycle and makes pre-emption look incomplete.
 - Reworked signal application so `SET_ENTITY_TRAFFICLIGHT_OVERRIDE` is only called when an entity's desired state actually changes instead of being re-applied every 200 ms.

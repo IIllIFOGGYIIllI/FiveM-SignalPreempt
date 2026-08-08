@@ -107,3 +107,8 @@ Diagnostic commands:
 - `/spinspect` prints nearby traffic-light models and whether SignalPreempt controls them.
 - `/spstatus` prints whether the current vehicle is allowed, whether FiveM reports its siren active, whether it qualifies for pre-emption, and what intersection SignalPreempt is requesting/detecting.
 - `/spcleanup` force-resets loaded traffic-light objects back to GTA control.
+
+
+## Diagnostic probe
+
+Run `/spprobe` near an intersection with the siren off. It cycles the nearest `prop_traffic_01d` through reset, green, red, yellow, and reset so model-specific rendering artifacts can be isolated.
