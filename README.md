@@ -1,4 +1,4 @@
-# SignalPreempt v0.1.10
+# SignalPreempt v0.1.11
 
 Standalone emergency vehicle traffic signal pre-emption for FiveM.
 
