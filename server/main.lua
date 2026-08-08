@@ -1,3 +1,22 @@
+local RESOURCE_NAME = GetCurrentResourceName()
+local RESOURCE_VERSION = GetResourceMetadata(RESOURCE_NAME, 'version', 0) or 'unknown'
+
+local function printStartupBanner()
+    print('^1============================================================^7')
+    print(('^3%s^7 | Version ^2v%s^7'):format(RESOURCE_NAME, RESOURCE_VERSION))
+    print('^5Emergency Vehicle Traffic Signal Pre-emption^7')
+    print('^2Resource started successfully.^7')
+    print('^1============================================================^7')
+end
+
+AddEventHandler('onResourceStart', function(resourceName)
+    if resourceName ~= RESOURCE_NAME then
+        return
+    end
+
+    printStartupBanner()
+end)
+
 local activeIntersections = {}
 
 local function nowSeconds()

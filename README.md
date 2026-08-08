@@ -1,4 +1,4 @@
-# SignalPreempt v0.1.0
+# SignalPreempt v0.1.1
 
 Standalone emergency vehicle traffic signal pre-emption for FiveM.
 
@@ -9,6 +9,10 @@ Standalone emergency vehicle traffic signal pre-emption for FiveM.
 3. Restart the server or run `ensure SignalPreempt` from the server console.
 
 No ESX, QBCore, ELS, or other framework is required.
+
+## Startup log
+
+When the resource starts, SignalPreempt prints its resource name and version from `fxmanifest.lua` directly to the FiveM server console. This keeps the startup version display in sync with the resource metadata.
 
 ## Default behaviour
 

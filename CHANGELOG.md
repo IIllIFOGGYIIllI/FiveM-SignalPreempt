@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.1.1
+
+- Added a formatted SignalPreempt startup banner to the FiveM server console.
+- Startup banner reads the version directly from `fxmanifest.lua` resource metadata.
+- Bumped resource version to `0.1.1`.
+
 ## v0.1.0
 
 - Initial standalone SignalPreempt resource.
