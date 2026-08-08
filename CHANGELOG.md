@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.1.2
+
+- Added traffic-light road-node look-ahead so signalised intersections can be acquired before their physical props are fully streamed.
+- Increased default acquisition range from 185 m to 240 m and tightened the detection tick for earlier activation.
+- Added provisional intersection centring from GTA traffic-light path nodes.
+- Removed the large debug spheres that appeared as fake/invisible coloured lights near traffic-light pole bases.
+- Debug mode now uses a small intersection crosshair and `[G]` / `[R]` labels positioned near the top of each traffic-light prop.
+- Increased nearby light resolution radius and refresh rate.
+
 ## v0.1.1
 
 - Added a formatted SignalPreempt startup banner to the FiveM server console.

@@ -26,6 +26,11 @@ local function dot2(ax, ay, bx, by)
     return (ax * bx) + (ay * by)
 end
 
+
+local function hasFlag(value, flag)
+    return type(value) == 'number' and (value & flag) ~= 0
+end
+
 local function distance2D(a, b)
     local dx = a.x - b.x
     local dy = a.y - b.y
@@ -185,6 +190,87 @@ local function findClusterAround(seedObject)
     }
 end
 
+local function getClosestVehicleNodePosition(x, y, z)
+    local ok, found, nodePos = pcall(
+        GetClosestVehicleNode,
+        x,
+        y,
+        z,
+        Config.Detection.NodeSearchType or 1,
+        Config.Detection.NodeSearchParam or 3.0,
+        0.0
+    )
+
+    if ok and found and nodePos and nodePos.x and nodePos.y and nodePos.z then
+        return {
+            x = nodePos.x,
+            y = nodePos.y,
+            z = nodePos.z,
+        }
+    end
+
+    return nil
+end
+
+local function detectTrafficLightNodeAhead(vehicleCoords, fx, fy)
+    if not Config.Detection.UseTrafficLightNodes then
+        return nil
+    end
+
+    local probeDistance = math.max(
+        Config.Detection.MinAcquireDistance,
+        Config.Detection.NodeProbeStartDistance or Config.Detection.MinAcquireDistance
+    )
+    local probeStep = math.max(5.0, Config.Detection.NodeProbeStep or 10.0)
+    local trafficLightFlag = Config.Detection.TrafficLightNodeFlag or 256
+
+    while probeDistance <= Config.Detection.MaxAcquireDistance do
+        local sampleX = vehicleCoords.x + (fx * probeDistance)
+        local sampleY = vehicleCoords.y + (fy * probeDistance)
+
+        local ok, valid, _, flags = pcall(
+            GetVehicleNodeProperties,
+            sampleX,
+            sampleY,
+            vehicleCoords.z
+        )
+
+        if ok and valid and hasFlag(flags, trafficLightFlag) then
+            local node = getClosestVehicleNodePosition(sampleX, sampleY, vehicleCoords.z)
+            if node then
+                local dx = node.x - vehicleCoords.x
+                local dy = node.y - vehicleCoords.y
+                local longitudinal = dot2(dx, dy, fx, fy)
+                local lateral = math.abs((dx * fy) - (dy * fx))
+
+                if longitudinal >= Config.Detection.MinAcquireDistance
+                    and longitudinal <= Config.Detection.MaxAcquireDistance + probeStep
+                    and lateral <= Config.Detection.MaxLateralOffset then
+
+                    local centerOffset = Config.Detection.NodeCenterForwardOffset or 0.0
+                    local center = {
+                        x = node.x + (fx * centerOffset),
+                        y = node.y + (fy * centerOffset),
+                        z = node.z,
+                    }
+
+                    return {
+                        id = makeIntersectionId(center),
+                        center = center,
+                        axis = { x = fx, y = fy },
+                        lights = {},
+                        source = 'traffic_light_node',
+                    }
+                end
+            end
+        end
+
+        probeDistance = probeDistance + probeStep
+    end
+
+    return nil
+end
+
 local function detectUpcomingIntersection(vehicle)
     local vehicleCoords = GetEntityCoords(vehicle)
     local forward = GetEntityForwardVector(vehicle)
@@ -221,6 +307,11 @@ local function detectUpcomingIntersection(vehicle)
     end
 
     if not bestLight then
+        local nodeCandidate = detectTrafficLightNodeAhead(vehicleCoords, fx, fy)
+        if nodeCandidate then
+            return nodeCandidate
+        end
+
         fallbackProbeTrafficLights(vehicleCoords, fx, fy)
 
         for _, light in ipairs(nearbyLights) do
@@ -513,20 +604,39 @@ local function controlAITraffic()
     end
 end
 
-local function drawText3D(coords, text)
+local function drawText3D(coords, text, r, g, b, a)
     local visible, sx, sy = World3dToScreen2d(coords.x, coords.y, coords.z)
     if not visible then
         return
     end
 
-    SetTextScale(0.30, 0.30)
+    SetTextScale(0.28, 0.28)
     SetTextFont(0)
     SetTextProportional(1)
     SetTextCentre(true)
+    SetTextColour(r or 255, g or 255, b or 255, a or 230)
     SetTextOutline()
     SetTextEntry('STRING')
     AddTextComponentString(text)
     DrawText(sx, sy)
+end
+
+local function getTrafficLightDebugPoint(light)
+    local coords = GetEntityCoords(light)
+    local ok, minDim, maxDim = pcall(GetModelDimensions, GetEntityModel(light))
+
+    if ok and minDim and maxDim and maxDim.z then
+        local top = GetOffsetFromEntityInWorldCoords(light, 0.0, 0.0, maxDim.z + 0.35)
+        if top and top.x then
+            return top
+        end
+    end
+
+    return {
+        x = coords.x,
+        y = coords.y,
+        z = coords.z + 5.5,
+    }
 end
 
 local function drawDebug()
@@ -536,16 +646,26 @@ local function drawDebug()
 
     for id, intersection in pairs(activeIntersections) do
         if Config.Debug.DrawIntersection then
-            DrawMarker(
-                28,
-                intersection.center.x,
+            local z = intersection.center.z + 0.35
+            local crossSize = 2.5
+
+            DrawLine(
+                intersection.center.x - crossSize,
                 intersection.center.y,
-                intersection.center.z + 0.5,
-                0.0, 0.0, 0.0,
-                0.0, 0.0, 0.0,
-                1.5, 1.5, 1.5,
-                255, 255, 255, 180,
-                false, false, 2, false, nil, nil, false
+                z,
+                intersection.center.x + crossSize,
+                intersection.center.y,
+                z,
+                255, 255, 255, 210
+            )
+            DrawLine(
+                intersection.center.x,
+                intersection.center.y - crossSize,
+                z,
+                intersection.center.x,
+                intersection.center.y + crossSize,
+                z,
+                255, 255, 255, 210
             )
 
             local endX = intersection.center.x + (intersection.axis.x * 18.0)
@@ -553,10 +673,10 @@ local function drawDebug()
             DrawLine(
                 intersection.center.x,
                 intersection.center.y,
-                intersection.center.z + 1.0,
+                z + 0.35,
                 endX,
                 endY,
-                intersection.center.z + 1.0,
+                z + 0.35,
                 255, 255, 255, 220
             )
 
@@ -574,24 +694,11 @@ local function drawDebug()
             local lights = intersection.lights or {}
             for _, light in ipairs(lights) do
                 if DoesEntityExist(light) then
-                    local coords = GetEntityCoords(light)
                     local green = intersection.phase == 'priority' and signalShouldBeGreen(light, intersection)
-                    local r, g, b = 255, 50, 50
-                    if green then
-                        r, g, b = 50, 255, 80
-                    end
-
-                    DrawMarker(
-                        28,
-                        coords.x,
-                        coords.y,
-                        coords.z + 1.0,
-                        0.0, 0.0, 0.0,
-                        0.0, 0.0, 0.0,
-                        0.45, 0.45, 0.45,
-                        r, g, b, 190,
-                        false, false, 2, false, nil, nil, false
-                    )
+                    local label = green and '[G]' or '[R]'
+                    local r, g, b = green and 70 or 255, green and 255 or 80, green and 90 or 80
+                    local debugPoint = getTrafficLightDebugPoint(light)
+                    drawText3D(debugPoint, label, r, g, b, 235)
                 end
             end
         end

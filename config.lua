@@ -26,14 +26,28 @@ Config.Activation = {
 
 -- Automatic intersection acquisition.
 Config.Detection = {
-    MaxAcquireDistance = 185.0,
-    MinAcquireDistance = 12.0,
-    MaxLateralOffset = 32.0,
+    -- How far ahead SignalPreempt starts looking for a signalised junction.
+    MaxAcquireDistance = 240.0,
+    MinAcquireDistance = 10.0,
+    MaxLateralOffset = 38.0,
     LateralPenalty = 2.25,
-    ClusterRadius = 34.0,
+    ClusterRadius = 36.0,
     MinSignals = 2,
     ReleaseBehindDistance = 24.0,
-    IntersectionIdGrid = 5.0,
+    IntersectionIdGrid = 10.0,
+
+    -- Road-node look-ahead lets the resource identify signalised junctions before the
+    -- physical traffic-light props have streamed into the client's object pool.
+    UseTrafficLightNodes = true,
+    TrafficLightNodeFlag = 256, -- eVehicleNodeProperties.TRAFFIC_LIGHT (1 << 8)
+    NodeProbeStartDistance = 32.0,
+    NodeProbeStep = 10.0,
+    NodeSearchType = 1,
+    NodeSearchParam = 3.0,
+
+    -- Traffic-light path nodes tend to sit around the stop line. Moving the provisional
+    -- centre slightly forward places the lock closer to the middle of the junction.
+    NodeCenterForwardOffset = 12.0,
 }
 
 -- Signal phasing.
@@ -100,10 +114,10 @@ Config.Server = {
 }
 
 Config.Performance = {
-    ClientTickMs = 200,
-    LightPoolRefreshMs = 1200,
-    LightPoolRadius = 240.0,
-    SignalApplyMs = 250,
+    ClientTickMs = 150,
+    LightPoolRefreshMs = 900,
+    LightPoolRadius = 285.0,
+    SignalApplyMs = 200,
     AITrafficMs = 250,
 }
 
