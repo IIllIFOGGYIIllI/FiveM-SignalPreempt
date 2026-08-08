@@ -12,6 +12,7 @@ local noOverrideLightModelHashes = {}
 local lightModelNames = {}
 local lastSignalApply = 0
 local lastAITraffic = 0
+local appliedSignalStates = {}
 
 local function nowMs()
     return GetGameTimer()
@@ -79,15 +80,28 @@ local function buildModelHashSet()
     end
 end
 
-local function applyTrafficLightState(object, state)
+local function applyTrafficLightState(object, state, force)
     if object == 0 or not DoesEntityExist(object) then
-        return
+        return false
     end
 
-    -- Keep rendering changes limited to GTA's traffic-light override itself. v0.1.8
-    -- no longer manipulates generic entity lights or particle FX; those workarounds did
-    -- not remove the 01d ghost lamp and risked touching unrelated effects on the prop.
+    -- The override persists until it is changed/reset. Re-applying it every few hundred
+    -- milliseconds is unnecessary and can repeatedly retrigger rendering state on the
+    -- traffic-light archetype. Only touch an entity when its desired state actually
+    -- changes (or when cleanup explicitly forces a reset).
+    if not force and appliedSignalStates[object] == state then
+        return false
+    end
+
     SetEntityTrafficlightOverride(object, state)
+
+    if state == Config.Signals.ResetState then
+        appliedSignalStates[object] = nil
+    else
+        appliedSignalStates[object] = state
+    end
+
+    return true
 end
 
 local function resetAllLoadedTrafficLights()
@@ -99,7 +113,7 @@ local function resetAllLoadedTrafficLights()
             if detectionLightModelHashes[model]
                 or overrideLightModelHashes[model]
                 or noOverrideLightModelHashes[model] then
-                applyTrafficLightState(object, Config.Signals.ResetState)
+                applyTrafficLightState(object, Config.Signals.ResetState, true)
                 resetCount = resetCount + 1
             end
         end
@@ -116,7 +130,7 @@ local function resetNoOverrideTrafficLights(center, radius)
     for _, object in ipairs(GetGamePool('CObject')) do
         if DoesEntityExist(object) and noOverrideLightModelHashes[GetEntityModel(object)] then
             if not center or distance3D(GetEntityCoords(object), center) <= radius then
-                applyTrafficLightState(object, Config.Signals.ResetState)
+                applyTrafficLightState(object, Config.Signals.ResetState, true)
             end
         end
     end
@@ -545,14 +559,6 @@ local function applySignalStates()
 
     for _, intersection in pairs(activeIntersections) do
         if distance3D(playerCoords, intersection.center) <= Config.Performance.LightPoolRadius then
-            -- Keep integrated pedestrian/crosswalk assemblies under GTA control.
-            -- This prevents the low pole-mounted ghost green/amber coronas produced
-            -- when the entire 03a/03b object is forced as a vehicle traffic light.
-            resetNoOverrideTrafficLights(
-                intersection.center,
-                Config.Detection.ClusterRadius + 6.0
-            )
-
             if not intersection.lights or nowMs() - (intersection.lastLightResolve or 0) > 2500 then
                 intersection.lights = findLightsForIntersection(intersection)
                 intersection.lastLightResolve = nowMs()
@@ -609,7 +615,7 @@ local function recoverAndResetIntersection(intersection)
                 end
 
                 if not claimedByAnotherIntersection then
-                    applyTrafficLightState(light, Config.Signals.ResetState)
+                    applyTrafficLightState(light, Config.Signals.ResetState, true)
                 end
             end
         end
@@ -964,6 +970,49 @@ RegisterCommand('spinspect', function()
     end
 end, false)
 
+RegisterCommand('spstatus', function()
+    local ped = PlayerPedId()
+    local vehicle = GetVehiclePedIsIn(ped, false)
+    local allowed = vehicle ~= 0 and isAllowedVehicle(vehicle)
+    local driver = vehicle ~= 0 and GetPedInVehicleSeat(vehicle, -1) == ped
+    local siren = vehicle ~= 0 and IsVehicleSirenOn(vehicle) or false
+    local qualified = vehicle ~= 0 and isQualifiedEmergencyVehicle(ped, vehicle)
+
+    local activeCount = 0
+    for _ in pairs(activeIntersections) do
+        activeCount = activeCount + 1
+    end
+
+    print(('[SignalPreempt] status: vehicle=%s class=%s allowed=%s driver=%s siren=%s emitter=%s qualified=%s request=%s activeIntersections=%d'):format(
+        tostring(vehicle),
+        vehicle ~= 0 and tostring(GetVehicleClass(vehicle)) or 'n/a',
+        tostring(allowed),
+        tostring(driver),
+        tostring(siren),
+        tostring(emitterOverride),
+        tostring(qualified),
+        currentRequest and currentRequest.id or 'none',
+        activeCount
+    ))
+
+    if vehicle ~= 0 and qualified then
+        local candidate = detectUpcomingIntersection(vehicle)
+        if candidate then
+            local coords = GetEntityCoords(vehicle)
+            print(('[SignalPreempt] candidate: id=%s source=%s distance=%.1fm center=%.2f %.2f %.2f'):format(
+                candidate.id,
+                candidate.source or 'object_cluster',
+                distance3D(coords, candidate.center),
+                candidate.center.x,
+                candidate.center.y,
+                candidate.center.z
+            ))
+        else
+            print('[SignalPreempt] candidate: none')
+        end
+    end
+end, false)
+
 -- Keep the approach road nodes requested every frame while an eligible emergency
 -- vehicle is active. GTA's path-node request native is explicitly frame-scoped.
 CreateThread(function()
@@ -1076,7 +1125,7 @@ AddEventHandler('onResourceStop', function(resourceName)
         local lights = intersection.lights or {}
         for _, light in ipairs(lights) do
             if DoesEntityExist(light) then
-                applyTrafficLightState(light, Config.Signals.ResetState)
+                applyTrafficLightState(light, Config.Signals.ResetState, true)
             end
         end
     end

@@ -91,21 +91,18 @@ Config.Signals = {
         'prop_traffic_03b',
     },
 
-    -- Only the overhead/primary 01a and 01b props are forced. Field inspection on
-    -- vanilla intersections showed the low ghost lamp belongs to a forced 01d pole
-    -- assembly. The 01d model remains available for intersection detection, but GTA
-    -- keeps control of its rendering so the hidden/auxiliary lamp cannot be exposed.
+    -- Primary vehicle signal props. 01d is required at many vanilla intersections;
+    -- removing it leaves the approach-side heads under GTA's normal cycle and can make
+    -- pre-emption appear to stop working. v0.1.10 restores 01d and instead avoids
+    -- hammering the override native continuously.
     OverrideModels = {
         'prop_traffic_01a',
         'prop_traffic_01b',
+        'prop_traffic_01d',
     },
 
-    -- Never force these models. They are explicitly reset near an active junction in
-    -- case an older SignalPreempt build left an entity override behind. The beta
-    -- light-set prop is also tracked by /spinspect for diagnostics but is not used for
-    -- intersection detection.
+    -- Detection-only / integrated assemblies that SignalPreempt never forces.
     NoOverrideModels = {
-        'prop_traffic_01d',
         'prop_traffic_02a',
         'prop_traffic_02b',
         'prop_traffic_03a',

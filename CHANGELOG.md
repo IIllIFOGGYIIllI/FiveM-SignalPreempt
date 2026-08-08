@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.1.10
+- Restored `prop_traffic_01d` to active signal control after v0.1.8/v0.1.9 proved that excluding it leaves many vanilla approach heads on GTA's normal cycle and makes pre-emption look incomplete.
+- Reworked signal application so `SET_ENTITY_TRAFFICLIGHT_OVERRIDE` is only called when an entity's desired state actually changes instead of being re-applied every 200 ms.
+- Stopped continuously resetting detection-only traffic-light assemblies while an intersection is active; they are cleaned on resource start/cleanup instead.
+- Added `/spstatus` to print vehicle eligibility, siren state, qualification state, current request, active intersection count, and the current candidate intersection.
+- Preserved the v0.1.3 acquisition-distance tuning and existing multiplayer/AI control behaviour.
+
 ## v0.1.9
 - Fixed a Lua syntax error in `config.lua` caused by an uncommented `03a/03b are kept here` note.
 - Restored normal loading of the shared configuration and client script.

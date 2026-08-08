@@ -1,4 +1,4 @@
-# SignalPreempt v0.1.7
+# SignalPreempt v0.1.10
 
 Standalone emergency vehicle traffic signal pre-emption for FiveM.
 
@@ -95,3 +95,15 @@ The GTA traffic-light override native can activate more than the visible signal 
 ## v0.1.8 01d compatibility change
 
 Field inspection identified `prop_traffic_01d` as the closest actively overridden model at intersections showing the low-mounted green ghost lamp. SignalPreempt now leaves 01d rendering under GTA control and only forces 01a/01b vehicle-signal props. This is intentionally conservative: correct, clean signal rendering is preferred over forcing every auxiliary signal head.
+
+
+## v0.1.10 signal-control test
+
+v0.1.10 restores `prop_traffic_01d` because field testing showed that many vanilla intersections rely on that model for the actual approach-side signal heads. SignalPreempt now treats traffic-light overrides as persistent state: it writes a new native override only when a signal changes phase, rather than hammering the same entity every signal tick.
+
+Diagnostic commands:
+
+- `/spdebug` toggles world-space intersection/signal debugging.
+- `/spinspect` prints nearby traffic-light models and whether SignalPreempt controls them.
+- `/spstatus` prints whether the current vehicle is allowed, whether FiveM reports its siren active, whether it qualifies for pre-emption, and what intersection SignalPreempt is requesting/detecting.
+- `/spcleanup` force-resets loaded traffic-light objects back to GTA control.
