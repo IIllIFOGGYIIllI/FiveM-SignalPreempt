@@ -63,10 +63,11 @@ Config.Detection = {
 
 -- Signal phasing.
 Config.Signals = {
-    -- GTA traffic light override values: 0 green, 1 red, 2 yellow, 3 reset.
-    GreenState = 0,
-    RedState = 1,
-    YellowState = 2,
+    -- Official GTA/FiveM traffic-light override values:
+    -- 0 = red, 1 = amber, 2 = green, 3 = no override/reset.
+    RedState = 0,
+    YellowState = 1,
+    GreenState = 2,
     ResetState = 3,
 
     -- All approaches are held red briefly before the priority approach receives green.
@@ -91,15 +92,25 @@ Config.Signals = {
         'prop_traffic_03b',
     },
 
-    -- Primary vehicle signal props. 01d is required at many vanilla intersections;
-    -- removing it leaves the approach-side heads under GTA's normal cycle and can make
-    -- pre-emption appear to stop working. v0.1.10 restores 01d and instead avoids
-    -- hammering the override native continuously.
+    -- Primary traffic-light props that can safely use the native override directly.
     OverrideModels = {
         'prop_traffic_01a',
         'prop_traffic_01b',
-        'prop_traffic_01d',
     },
+
+    -- prop_traffic_01d has a model-specific rendering artifact when the native traffic
+    -- light override is applied directly: GTA exposes an extra low-mounted lamp/corona.
+    -- SignalPreempt therefore swaps only the local 01d instance to a compatible vanilla
+    -- traffic-light proxy while pre-emption is active, controls the proxy, then restores
+    -- the original model when the intersection is released.
+    ProxyModels = {
+        ['prop_traffic_01d'] = {
+            model = 'prop_traffic_01a',
+            radius = 1.35,
+        },
+    },
+
+    ProxyLoadTimeoutMs = 2500,
 
     -- Detection-only / integrated assemblies that SignalPreempt never forces.
     NoOverrideModels = {

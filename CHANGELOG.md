@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.1.12
+- Redesigned `prop_traffic_01d` handling instead of applying `SET_ENTITY_TRAFFICLIGHT_OVERRIDE` directly to that model.
+- Active `01d` map instances are temporarily swapped to a compatible vanilla `prop_traffic_01a` proxy, the proxy receives the signal override, and the original `01d` is restored when pre-emption ends.
+- Added `/spproxies` to inspect active traffic-light proxy swaps.
+- Updated `/spprobe` to test the new proxy strategy instead of deliberately overriding `01d` directly.
+- Corrected the traffic-light override state mapping to the official FiveM/Cfx values: red `0`, amber `1`, green `2`, reset/no override `3`.
+- Startup and `/spcleanup` no longer directly touch `01d` proxy-source models.
+- Preserved the established early intersection acquisition, server synchronisation, and AI cross-traffic logic.
+
 ## v0.1.11
 - Added `/spprobe`, a one-command diagnostic that isolates the nearest `prop_traffic_01d` and cycles it through RESET, GREEN, RED, YELLOW, then RESET.
 - The probe prints each state to F8 so the low-mounted ghost glow can be matched to the exact native override state without changing normal SignalPreempt behaviour.

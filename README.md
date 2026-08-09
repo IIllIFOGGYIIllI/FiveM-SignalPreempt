@@ -1,4 +1,4 @@
-# SignalPreempt v0.1.11
+# SignalPreempt v0.1.10
 
 Standalone emergency vehicle traffic signal pre-emption for FiveM.
 
@@ -112,3 +112,15 @@ Diagnostic commands:
 ## Diagnostic probe
 
 Run `/spprobe` near an intersection with the siren off. It cycles the nearest `prop_traffic_01d` through reset, green, red, yellow, and reset so model-specific rendering artifacts can be isolated.
+
+
+## v0.1.12 01d proxy handling
+
+Vanilla `prop_traffic_01d` can expose an unwanted low-mounted lamp/corona when its traffic-light state is overridden directly. SignalPreempt therefore does not directly override `01d` in normal operation. While an intersection is pre-empted, each affected `01d` instance is locally model-swapped to a compatible vanilla `prop_traffic_01a` proxy, the proxy is controlled, and the original model is restored on release.
+
+Diagnostic commands:
+- `/spstatus` — current eligibility/request/intersection status
+- `/spinspect` — nearby traffic-light models and control mode
+- `/spproxies` — active 01d proxy swaps
+- `/spprobe` — isolated proxy-cycle test near an 01d signal
+- `/spcleanup` — restore proxy swaps and reset directly controlled signals

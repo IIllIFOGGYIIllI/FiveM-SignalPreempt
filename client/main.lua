@@ -9,6 +9,9 @@ local nearbyLights = {}
 local detectionLightModelHashes = {}
 local overrideLightModelHashes = {}
 local noOverrideLightModelHashes = {}
+local proxySourceModelHashes = {}
+local proxyDefinitions = {}
+local activeModelSwaps = {}
 local lightModelNames = {}
 local lastSignalApply = 0
 local lastAITraffic = 0
@@ -64,6 +67,8 @@ local function buildModelHashSet()
     detectionLightModelHashes = {}
     overrideLightModelHashes = {}
     noOverrideLightModelHashes = {}
+    proxySourceModelHashes = {}
+    proxyDefinitions = {}
     lightModelNames = {}
 
     for _, modelName in ipairs(Config.Signals.DetectionModels or {}) do
@@ -73,6 +78,26 @@ local function buildModelHashSet()
     for _, modelName in ipairs(Config.Signals.OverrideModels or {}) do
         addNamedModel(overrideLightModelHashes, modelName)
         detectionLightModelHashes[GetHashKey(modelName)] = true
+    end
+
+    for sourceName, definition in pairs(Config.Signals.ProxyModels or {}) do
+        if type(definition) == 'table' and type(definition.model) == 'string' then
+            local sourceHash = GetHashKey(sourceName)
+            local proxyHash = GetHashKey(definition.model)
+
+            proxySourceModelHashes[sourceHash] = true
+            proxyDefinitions[sourceHash] = {
+                sourceName = sourceName,
+                sourceHash = sourceHash,
+                proxyName = definition.model,
+                proxyHash = proxyHash,
+                radius = tonumber(definition.radius) or 1.35,
+            }
+
+            detectionLightModelHashes[sourceHash] = true
+            lightModelNames[sourceHash] = sourceName
+            lightModelNames[proxyHash] = definition.model
+        end
     end
 
     for _, modelName in ipairs(Config.Signals.NoOverrideModels or {}) do
@@ -104,15 +129,179 @@ local function applyTrafficLightState(object, state, force)
     return true
 end
 
+local function makeModelSwapKey(definition, coords)
+    return ('%s:%.2f:%.2f:%.2f'):format(
+        definition.sourceName,
+        coords.x,
+        coords.y,
+        coords.z
+    )
+end
+
+local function requestProxyModels()
+    local requested = {}
+
+    for _, definition in pairs(proxyDefinitions) do
+        if not requested[definition.proxyHash] then
+            RequestModel(definition.proxyHash)
+            requested[definition.proxyHash] = true
+        end
+    end
+
+    if not next(requested) then
+        return true
+    end
+
+    local started = nowMs()
+    local timeout = Config.Signals.ProxyLoadTimeoutMs or 2500
+
+    while nowMs() - started < timeout do
+        local allLoaded = true
+
+        for modelHash in pairs(requested) do
+            if not HasModelLoaded(modelHash) then
+                allLoaded = false
+                RequestModel(modelHash)
+            end
+        end
+
+        if allLoaded then
+            return true
+        end
+
+        Wait(0)
+    end
+
+    return false
+end
+
+local function findProxyObject(record)
+    local proxy = GetClosestObjectOfType(
+        record.coords.x,
+        record.coords.y,
+        record.coords.z,
+        record.radius + 2.0,
+        record.proxyHash,
+        false,
+        false,
+        false
+    )
+
+    if proxy ~= 0 and DoesEntityExist(proxy) then
+        record.proxyObject = proxy
+        return proxy
+    end
+
+    return 0
+end
+
+local function ensureModelSwapProxy(sourceObject)
+    if sourceObject == 0 or not DoesEntityExist(sourceObject) then
+        return 0, nil
+    end
+
+    local sourceHash = GetEntityModel(sourceObject)
+    local definition = proxyDefinitions[sourceHash]
+    if not definition then
+        return sourceObject, nil
+    end
+
+    local coords = GetEntityCoords(sourceObject)
+    local key = makeModelSwapKey(definition, coords)
+    local record = activeModelSwaps[key]
+
+    if record then
+        if record.proxyObject ~= 0 and DoesEntityExist(record.proxyObject) then
+            return record.proxyObject, record
+        end
+
+        local proxy = findProxyObject(record)
+        return proxy, record
+    end
+
+    if not HasModelLoaded(definition.proxyHash) then
+        RequestModel(definition.proxyHash)
+        return 0, nil
+    end
+
+    record = {
+        key = key,
+        coords = {
+            x = coords.x,
+            y = coords.y,
+            z = coords.z,
+        },
+        sourceHash = definition.sourceHash,
+        proxyHash = definition.proxyHash,
+        sourceName = definition.sourceName,
+        proxyName = definition.proxyName,
+        radius = definition.radius,
+        sourceObject = sourceObject,
+        proxyObject = 0,
+    }
+
+    -- Do not apply SET_ENTITY_TRAFFICLIGHT_OVERRIDE to the 01d source at all.
+    -- Swap only this map instance to the compatible vanilla proxy model.
+    CreateModelSwap(
+        record.coords.x,
+        record.coords.y,
+        record.coords.z,
+        record.radius,
+        record.sourceHash,
+        record.proxyHash,
+        false
+    )
+
+    activeModelSwaps[key] = record
+
+    local proxy = findProxyObject(record)
+    return proxy, record
+end
+
+local function restoreModelSwap(record)
+    if not record then
+        return
+    end
+
+    if record.proxyObject ~= 0 and DoesEntityExist(record.proxyObject) then
+        applyTrafficLightState(record.proxyObject, Config.Signals.ResetState, true)
+        appliedSignalStates[record.proxyObject] = nil
+    end
+
+    RemoveModelSwap(
+        record.coords.x,
+        record.coords.y,
+        record.coords.z,
+        record.radius,
+        record.sourceHash,
+        record.proxyHash,
+        false
+    )
+
+    activeModelSwaps[record.key] = nil
+end
+
+local function restoreAllModelSwaps()
+    local records = {}
+
+    for _, record in pairs(activeModelSwaps) do
+        records[#records + 1] = record
+    end
+
+    for _, record in ipairs(records) do
+        restoreModelSwap(record)
+    end
+end
+
 local function resetAllLoadedTrafficLights()
     local resetCount = 0
 
+    -- Proxy sources such as prop_traffic_01d are intentionally NOT touched here.
+    -- Even a direct override on that model is what causes the low ghost lamp.
     for _, object in ipairs(GetGamePool('CObject')) do
         if DoesEntityExist(object) then
             local model = GetEntityModel(object)
-            if detectionLightModelHashes[model]
-                or overrideLightModelHashes[model]
-                or noOverrideLightModelHashes[model] then
+            if overrideLightModelHashes[model] then
                 applyTrafficLightState(object, Config.Signals.ResetState, true)
                 resetCount = resetCount + 1
             end
@@ -530,10 +719,13 @@ local function findLightsForIntersection(intersection)
 
     local lights = {}
     for _, light in ipairs(nearbyLights) do
-        if DoesEntityExist(light) and overrideLightModelHashes[GetEntityModel(light)] then
+        if DoesEntityExist(light) then
+            local model = GetEntityModel(light)
+            if overrideLightModelHashes[model] or proxySourceModelHashes[model] then
             local coords = GetEntityCoords(light)
             if distance3D(coords, intersection.center) <= Config.Detection.ClusterRadius + 4.0 then
                 lights[#lights + 1] = light
+            end
             end
         end
     end
@@ -552,6 +744,49 @@ local function signalShouldBeGreen(light, intersection)
     end
 
     return not parallel
+end
+
+local function applyManagedTrafficLightState(light, state, force)
+    if light == 0 or not DoesEntityExist(light) then
+        return false
+    end
+
+    local model = GetEntityModel(light)
+    if proxySourceModelHashes[model] then
+        local proxy = ensureModelSwapProxy(light)
+        if proxy == 0 then
+            return false
+        end
+
+        return applyTrafficLightState(proxy, state, force)
+    end
+
+    return applyTrafficLightState(light, state, force)
+end
+
+local function proxySwapClaimedByActiveIntersection(record)
+    for _, active in pairs(activeIntersections) do
+        if distance3D(record.coords, active.center) <= Config.Detection.ClusterRadius + 4.0 then
+            return true
+        end
+    end
+
+    return false
+end
+
+local function restoreProxySwapsNear(center, radius)
+    local records = {}
+
+    for _, record in pairs(activeModelSwaps) do
+        if distance3D(record.coords, center) <= radius
+            and not proxySwapClaimedByActiveIntersection(record) then
+            records[#records + 1] = record
+        end
+    end
+
+    for _, record in ipairs(records) do
+        restoreModelSwap(record)
+    end
 end
 
 local function applySignalStates()
@@ -575,7 +810,7 @@ local function applySignalStates()
                         state = Config.Signals.RedState
                     end
 
-                    applyTrafficLightState(light, state)
+                    applyManagedTrafficLightState(light, state)
                     intersection.lastStates = intersection.lastStates or {}
                     intersection.lastStates[light] = state
                 end
@@ -592,10 +827,10 @@ local function recoverAndResetIntersection(intersection)
         if DoesEntityExist(light) then
             local previousState = intersection.lastStates and intersection.lastStates[light]
             if previousState == Config.Signals.GreenState then
-                applyTrafficLightState(light, Config.Signals.YellowState)
+                applyManagedTrafficLightState(light, Config.Signals.YellowState)
                 yellowLights[#yellowLights + 1] = light
             else
-                applyTrafficLightState(light, Config.Signals.RedState)
+                applyManagedTrafficLightState(light, Config.Signals.RedState)
             end
         end
     end
@@ -615,10 +850,15 @@ local function recoverAndResetIntersection(intersection)
                 end
 
                 if not claimedByAnotherIntersection then
-                    applyTrafficLightState(light, Config.Signals.ResetState, true)
+                    applyManagedTrafficLightState(light, Config.Signals.ResetState, true)
                 end
             end
         end
+
+        restoreProxySwapsNear(
+            intersection.center,
+            Config.Detection.ClusterRadius + 6.0
+        )
     end)
 end
 
@@ -921,8 +1161,9 @@ if Config.Debug.AllowCommand then
 end
 
 RegisterCommand('spcleanup', function()
+    restoreAllModelSwaps()
     local count = resetAllLoadedTrafficLights()
-    print(('[SignalPreempt] Reset %d loaded traffic-light objects.'):format(count))
+    print(('[SignalPreempt] Restored proxy swaps and reset %d direct traffic-light objects.'):format(count))
 end, false)
 
 RegisterCommand('spinspect', function()
@@ -934,7 +1175,8 @@ RegisterCommand('spinspect', function()
             local model = GetEntityModel(object)
             if detectionLightModelHashes[model]
                 or overrideLightModelHashes[model]
-                or noOverrideLightModelHashes[model] then
+                or noOverrideLightModelHashes[model]
+                or proxySourceModelHashes[model] then
                 local coords = GetEntityCoords(object)
                 local distance = distance3D(coords, playerCoords)
                 if distance <= 90.0 then
@@ -944,7 +1186,8 @@ RegisterCommand('spinspect', function()
                         name = lightModelNames[model] or tostring(model),
                         coords = coords,
                         distance = distance,
-                        overridden = overrideLightModelHashes[model] == true,
+                        controlMode = proxySourceModelHashes[model] and 'proxy'
+                            or (overrideLightModelHashes[model] and 'direct' or 'none'),
                     }
                 end
             end
@@ -957,12 +1200,12 @@ RegisterCommand('spinspect', function()
 
     print(('[SignalPreempt] Nearby traffic-light objects: %d'):format(#entries))
     for _, entry in ipairs(entries) do
-        print(('[SignalPreempt] %s hash=%s entity=%s dist=%.1fm override=%s @ %.2f %.2f %.2f'):format(
+        print(('[SignalPreempt] %s hash=%s entity=%s dist=%.1fm control=%s @ %.2f %.2f %.2f'):format(
             entry.name,
             tostring(entry.model),
             tostring(entry.object),
             entry.distance,
-            entry.overridden and 'yes' or 'no',
+            entry.controlMode,
             entry.coords.x,
             entry.coords.y,
             entry.coords.z
@@ -994,40 +1237,83 @@ RegisterCommand('spprobe', function()
     end
 
     local coords = GetEntityCoords(target)
-    print(('[SignalPreempt] /spprobe: testing nearest prop_traffic_01d entity=%s dist=%.1fm @ %.2f %.2f %.2f'):format(
-        tostring(target),
-        bestDistance or -1.0,
+    print(('[SignalPreempt] /spprobe: testing 01d proxy strategy at %.2f %.2f %.2f (%.1fm away)'):format(
         coords.x,
         coords.y,
-        coords.z
+        coords.z,
+        bestDistance or -1.0
     ))
-    print('[SignalPreempt] Watch this one signal. Sequence: RESET -> GREEN -> RED -> YELLOW -> RESET.')
 
     CreateThread(function()
-        applyTrafficLightState(target, Config.Signals.ResetState, true)
+        local proxy, record = ensureModelSwapProxy(target)
+        local deadline = nowMs() + (Config.Signals.ProxyLoadTimeoutMs or 2500)
+
+        while proxy == 0 and nowMs() < deadline do
+            Wait(50)
+
+            if record then
+                proxy = findProxyObject(record)
+            else
+                proxy, record = ensureModelSwapProxy(target)
+            end
+        end
+
+        if proxy == 0 or not record then
+            print('[SignalPreempt] /spprobe: proxy swap failed; original 01d was not overridden.')
+            return
+        end
+
+        print(('[SignalPreempt] /spprobe: %s -> %s proxy entity=%s'):format(
+            record.sourceName,
+            record.proxyName,
+            tostring(proxy)
+        ))
+        print('[SignalPreempt] Watch the pole. Sequence: RESET -> GREEN -> RED -> YELLOW -> RESET -> RESTORE ORIGINAL.')
+
+        applyTrafficLightState(proxy, Config.Signals.ResetState, true)
         print('[SignalPreempt] /spprobe state: RESET')
         Wait(2000)
 
-        if not DoesEntityExist(target) then return end
-        applyTrafficLightState(target, Config.Signals.GreenState, true)
+        if not DoesEntityExist(proxy) then return end
+        applyTrafficLightState(proxy, Config.Signals.GreenState, true)
         print(('[SignalPreempt] /spprobe state: GREEN (%d)'):format(Config.Signals.GreenState))
         Wait(2500)
 
-        if not DoesEntityExist(target) then return end
-        applyTrafficLightState(target, Config.Signals.RedState, true)
+        if not DoesEntityExist(proxy) then return end
+        applyTrafficLightState(proxy, Config.Signals.RedState, true)
         print(('[SignalPreempt] /spprobe state: RED (%d)'):format(Config.Signals.RedState))
         Wait(2500)
 
-        if not DoesEntityExist(target) then return end
-        applyTrafficLightState(target, Config.Signals.YellowState, true)
+        if not DoesEntityExist(proxy) then return end
+        applyTrafficLightState(proxy, Config.Signals.YellowState, true)
         print(('[SignalPreempt] /spprobe state: YELLOW (%d)'):format(Config.Signals.YellowState))
         Wait(2500)
 
-        if DoesEntityExist(target) then
-            applyTrafficLightState(target, Config.Signals.ResetState, true)
+        if DoesEntityExist(proxy) then
+            applyTrafficLightState(proxy, Config.Signals.ResetState, true)
         end
-        print('[SignalPreempt] /spprobe state: RESET (finished)')
+
+        restoreModelSwap(record)
+        print('[SignalPreempt] /spprobe: original prop_traffic_01d restored.')
     end)
+end, false)
+
+RegisterCommand('spproxies', function()
+    local count = 0
+
+    for _, record in pairs(activeModelSwaps) do
+        count = count + 1
+        print(('[SignalPreempt] proxy %s -> %s @ %.2f %.2f %.2f entity=%s'):format(
+            record.sourceName,
+            record.proxyName,
+            record.coords.x,
+            record.coords.y,
+            record.coords.z,
+            tostring(record.proxyObject)
+        ))
+    end
+
+    print(('[SignalPreempt] active traffic-light proxy swaps: %d'):format(count))
 end, false)
 
 RegisterCommand('spstatus', function()
@@ -1102,6 +1388,11 @@ end)
 
 CreateThread(function()
     buildModelHashSet()
+
+    if not requestProxyModels() then
+        print('[SignalPreempt] WARNING: one or more traffic-light proxy models did not finish loading before timeout.')
+    end
+
     resetAllLoadedTrafficLights()
     Wait(1000)
     TriggerServerEvent('SignalPreempt:server:sync')
@@ -1184,9 +1475,11 @@ AddEventHandler('onResourceStop', function(resourceName)
     for _, intersection in pairs(activeIntersections) do
         local lights = intersection.lights or {}
         for _, light in ipairs(lights) do
-            if DoesEntityExist(light) then
+            if DoesEntityExist(light) and overrideLightModelHashes[GetEntityModel(light)] then
                 applyTrafficLightState(light, Config.Signals.ResetState, true)
             end
         end
     end
+
+    restoreAllModelSwaps()
 end)
