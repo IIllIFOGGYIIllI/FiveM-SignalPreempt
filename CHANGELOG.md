@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.1.14
+- Fixed `fxmanifest.lua` after v0.1.13 accidentally set `fx_version` to the package version number.
+- Restored the valid FiveM manifest declaration `fx_version 'cerulean'`.
+- Set the resource metadata version to `0.1.14`.
+- No SignalPreempt traffic-light, acquisition, AI traffic, proxy, networking, or pre-emption behaviour changed from v0.1.12/v0.1.13.
+
 ## v0.1.13
 - Updated the GitHub README/version heading to match the actual resource version.
 - Rewrote the README around the current SignalPreempt implementation instead of leaving obsolete experimental notes in the main documentation.

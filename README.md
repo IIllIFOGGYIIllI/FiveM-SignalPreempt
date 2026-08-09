@@ -1,4 +1,4 @@
-# SignalPreempt v0.1.13
+# SignalPreempt v0.1.14
 
 Standalone emergency vehicle traffic signal pre-emption for FiveM.
 
@@ -65,7 +65,7 @@ SignalPreempt uses the FiveM/GTA traffic-light override values:
 On resource start, the server console displays the current version from `fxmanifest.lua`, for example:
 
 ```text
-SignalPreempt | Version v0.1.13
+SignalPreempt | Version v0.1.14
 Emergency Vehicle Traffic Signal Pre-emption
 Resource started successfully.
 ```

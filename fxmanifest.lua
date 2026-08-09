@@ -1,9 +1,9 @@
-fx_version '0.1.13'
+fx_version 'cerulean'
 game 'gta5'
 
 author 'SignalPreempt'
 description 'Standalone emergency vehicle traffic signal pre-emption for FiveM'
-version '0.1.12'
+version '0.1.14'
 
 shared_script 'config.lua'
 
