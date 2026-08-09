@@ -105,8 +105,16 @@ Config.Signals = {
     -- the original model when the intersection is released.
     ProxyModels = {
         ['prop_traffic_01d'] = {
-            model = 'prop_traffic_01a',
+            -- 01b is now the default geometry proxy. 01a removed the ghost lamps but
+            -- its pole/assembly geometry did not line up cleanly with 01d.
+            model = 'prop_traffic_01b',
             radius = 1.35,
+
+            -- Used by /spproxycompare so both safe candidates can be compared in one test.
+            candidates = {
+                'prop_traffic_01b',
+                'prop_traffic_01a',
+            },
         },
     },
 

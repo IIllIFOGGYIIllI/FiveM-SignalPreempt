@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.1.15
+- Changed the default `prop_traffic_01d` geometry proxy from `prop_traffic_01a` to `prop_traffic_01b` for a closer visual match while retaining the ghost-lamp workaround.
+- Added `/spproxycompare` to compare `01b` and `01a` on the nearest `01d` pole in a single test; each candidate is shown green for five seconds.
+- `/spproxycompare` also prints source/candidate model dimensions to F8 for geometry comparison.
+- Preserved the confirmed `01d` ghost-light fix, early acquisition tuning, AI traffic control, networking, and signal-state mapping.
+
 ## v0.1.14
 - Fixed `fxmanifest.lua` after v0.1.13 accidentally set `fx_version` to the package version number.
 - Restored the valid FiveM manifest declaration `fx_version 'cerulean'`.

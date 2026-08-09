@@ -86,12 +86,24 @@ local function buildModelHashSet()
             local proxyHash = GetHashKey(definition.model)
 
             proxySourceModelHashes[sourceHash] = true
+            local candidates = {}
+            for _, candidateName in ipairs(definition.candidates or { definition.model }) do
+                if type(candidateName) == 'string' then
+                    candidates[#candidates + 1] = {
+                        name = candidateName,
+                        hash = GetHashKey(candidateName),
+                    }
+                    lightModelNames[GetHashKey(candidateName)] = candidateName
+                end
+            end
+
             proxyDefinitions[sourceHash] = {
                 sourceName = sourceName,
                 sourceHash = sourceHash,
                 proxyName = definition.model,
                 proxyHash = proxyHash,
                 radius = tonumber(definition.radius) or 1.35,
+                candidates = candidates,
             }
 
             detectionLightModelHashes[sourceHash] = true
@@ -145,6 +157,13 @@ local function requestProxyModels()
         if not requested[definition.proxyHash] then
             RequestModel(definition.proxyHash)
             requested[definition.proxyHash] = true
+        end
+
+        for _, candidate in ipairs(definition.candidates or {}) do
+            if not requested[candidate.hash] then
+                RequestModel(candidate.hash)
+                requested[candidate.hash] = true
+            end
         end
     end
 
@@ -1213,6 +1232,140 @@ RegisterCommand('spinspect', function()
     end
 end, false)
 
+
+local function getModelDimensionSummary(modelHash)
+    local ok, minDim, maxDim = pcall(GetModelDimensions, modelHash)
+    if not ok or not minDim or not maxDim then
+        return 'dimensions unavailable'
+    end
+
+    local width = math.abs(maxDim.x - minDim.x)
+    local depth = math.abs(maxDim.y - minDim.y)
+    local height = math.abs(maxDim.z - minDim.z)
+
+    return ('%.2f x %.2f x %.2f'):format(width, depth, height)
+end
+
+local function findNearestProxySource(sourceHash, maxDistance)
+    local playerCoords = GetEntityCoords(PlayerPedId())
+    local target = 0
+    local bestDistance = nil
+
+    for _, object in ipairs(GetGamePool('CObject')) do
+        if DoesEntityExist(object) and GetEntityModel(object) == sourceHash then
+            local distance = distance3D(GetEntityCoords(object), playerCoords)
+            if distance <= maxDistance and (not bestDistance or distance < bestDistance) then
+                target = object
+                bestDistance = distance
+            end
+        end
+    end
+
+    return target, bestDistance
+end
+
+local function waitForModel(modelHash, timeoutMs)
+    RequestModel(modelHash)
+    local deadline = nowMs() + timeoutMs
+
+    while not HasModelLoaded(modelHash) and nowMs() < deadline do
+        RequestModel(modelHash)
+        Wait(0)
+    end
+
+    return HasModelLoaded(modelHash)
+end
+
+RegisterCommand('spproxycompare', function()
+    if next(activeIntersections) then
+        print('[SignalPreempt] /spproxycompare: wait until no intersection is actively pre-empted.')
+        return
+    end
+
+    restoreAllModelSwaps()
+
+    local sourceHash = GetHashKey('prop_traffic_01d')
+    local target, bestDistance = findNearestProxySource(sourceHash, 60.0)
+    if target == 0 then
+        print('[SignalPreempt] /spproxycompare: no prop_traffic_01d found within 60m.')
+        return
+    end
+
+    local definition = proxyDefinitions[sourceHash]
+    if not definition or not definition.candidates or #definition.candidates == 0 then
+        print('[SignalPreempt] /spproxycompare: no proxy candidates configured for prop_traffic_01d.')
+        return
+    end
+
+    local coords = GetEntityCoords(target)
+    print(('[SignalPreempt] /spproxycompare: source prop_traffic_01d %.1fm away @ %.2f %.2f %.2f'):format(
+        bestDistance or -1.0, coords.x, coords.y, coords.z
+    ))
+    print(('[SignalPreempt] 01d dimensions: %s'):format(getModelDimensionSummary(sourceHash)))
+    print('[SignalPreempt] Compare pole/arm/head alignment. Each candidate stays GREEN for 5 seconds.')
+
+    CreateThread(function()
+        for _, candidate in ipairs(definition.candidates) do
+            if waitForModel(candidate.hash, Config.Signals.ProxyLoadTimeoutMs or 2500) then
+                print(('[SignalPreempt] Testing %s dimensions=%s'):format(
+                    candidate.name,
+                    getModelDimensionSummary(candidate.hash)
+                ))
+
+                CreateModelSwap(
+                    coords.x,
+                    coords.y,
+                    coords.z,
+                    definition.radius,
+                    sourceHash,
+                    candidate.hash,
+                    false
+                )
+
+                local deadline = nowMs() + 1500
+                local proxy = 0
+                while proxy == 0 and nowMs() < deadline do
+                    proxy = GetClosestObjectOfType(
+                        coords.x,
+                        coords.y,
+                        coords.z,
+                        definition.radius + 2.0,
+                        candidate.hash,
+                        false,
+                        false,
+                        false
+                    )
+                    if proxy == 0 then Wait(50) end
+                end
+
+                if proxy ~= 0 and DoesEntityExist(proxy) then
+                    applyTrafficLightState(proxy, Config.Signals.GreenState, true)
+                    print(('[SignalPreempt] LOOK NOW: %s proxy GREEN for 5 seconds.'):format(candidate.name))
+                    Wait(5000)
+                    applyTrafficLightState(proxy, Config.Signals.ResetState, true)
+                else
+                    print(('[SignalPreempt] Could not resolve streamed %s proxy object.'):format(candidate.name))
+                    Wait(1500)
+                end
+
+                RemoveModelSwap(
+                    coords.x,
+                    coords.y,
+                    coords.z,
+                    definition.radius,
+                    sourceHash,
+                    candidate.hash,
+                    false
+                )
+                Wait(1500)
+            else
+                print(('[SignalPreempt] Failed to load proxy candidate %s.'):format(candidate.name))
+            end
+        end
+
+        print(('[SignalPreempt] /spproxycompare finished. Default proxy is %s.'):format(definition.proxyName))
+    end)
+end, false)
 
 RegisterCommand('spprobe', function()
     local ped = PlayerPedId()

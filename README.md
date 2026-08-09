@@ -1,4 +1,4 @@
-# SignalPreempt v0.1.14
+# SignalPreempt v0.1.15
 
 Standalone emergency vehicle traffic signal pre-emption for FiveM.
 
@@ -38,7 +38,7 @@ SignalPreempt
 
 Vanilla `prop_traffic_01d` has a GTA rendering quirk: directly applying the traffic-light override can expose an unwanted low-mounted lamp/corona.
 
-SignalPreempt therefore does **not** directly override `prop_traffic_01d` during normal operation. When an affected `01d` signal must be controlled, SignalPreempt temporarily swaps that local map instance to a compatible vanilla `prop_traffic_01a` proxy, controls the proxy, and restores the original `01d` when pre-emption ends.
+SignalPreempt therefore does **not** directly override `prop_traffic_01d` during normal operation. When an affected `01d` signal must be controlled, SignalPreempt temporarily swaps that local map instance to a compatible vanilla `prop_traffic_01b` proxy, controls the proxy, and restores the original `01d` when pre-emption ends.
 
 Directly controlled vanilla models currently include:
 
@@ -65,7 +65,7 @@ SignalPreempt uses the FiveM/GTA traffic-light override values:
 On resource start, the server console displays the current version from `fxmanifest.lua`, for example:
 
 ```text
-SignalPreempt | Version v0.1.14
+SignalPreempt | Version v0.1.15
 Emergency Vehicle Traffic Signal Pre-emption
 Resource started successfully.
 ```
@@ -80,6 +80,10 @@ Shows current emergency-vehicle eligibility, siren state, qualification state, a
 
 ### `/spinspect`
 Lists nearby traffic-light objects and reports whether each is controlled directly, through the proxy system, or not controlled.
+
+
+### `/spproxycompare`
+With no active pre-emption and the siren off, compares the configured `prop_traffic_01d` proxy candidates one after another. Each candidate is shown green for five seconds and its model dimensions are printed to F8 so pole/arm/head alignment can be compared directly.
 
 ### `/spproxies`
 Lists currently active `prop_traffic_01d` proxy swaps.
