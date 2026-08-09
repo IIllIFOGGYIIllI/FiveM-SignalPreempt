@@ -1,4 +1,4 @@
-fx_version 'cerulean'
+fx_version '0.1.13'
 game 'gta5'
 
 author 'SignalPreempt'

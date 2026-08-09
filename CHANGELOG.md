@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.1.13
+- Updated the GitHub README/version heading to match the actual resource version.
+- Rewrote the README around the current SignalPreempt implementation instead of leaving obsolete experimental notes in the main documentation.
+- Documented the current `prop_traffic_01d` proxy strategy and diagnostic commands.
+- No pre-emption, acquisition-distance, AI traffic, networking, or signal-control behaviour changed from v0.1.12.
+
 ## v0.1.12
 - Redesigned `prop_traffic_01d` handling instead of applying `SET_ENTITY_TRAFFICLIGHT_OVERRIDE` directly to that model.
 - Active `01d` map instances are temporarily swapped to a compatible vanilla `prop_traffic_01a` proxy, the proxy receives the signal override, and the original `01d` is restored when pre-emption ends.
