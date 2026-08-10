@@ -1,4 +1,4 @@
-# SignalPreempt v0.1.38
+# SignalPreempt v1.0.0
 
 Standalone emergency-vehicle traffic-signal pre-emption for FiveM.
 
@@ -6,9 +6,9 @@ SignalPreempt detects a signalised junction ahead of an eligible emergency vehic
 
 ## Current status
 
-v0.1.38 is a documentation/repository-maintenance release built directly on the tested v0.1.37 runtime.
+v1.0.0 is the first public stable release of SignalPreempt.
 
-No traffic-control, AI, acquisition, networking, intersection-grouping, or signal-housing behaviour was changed in v0.1.38.
+It promotes the tested v0.1.37 runtime architecture and the completed v0.1.38 repository/documentation cleanup to the first public release. No traffic-control behaviour was changed solely for the version promotion.
 
 Current tested architecture:
 
@@ -288,7 +288,7 @@ SignalPreempt/
 
 SignalPreempt went through several approaches to `prop_traffic_01d`, including direct override, temporary proxies, visual shells, broad model swaps, and per-pole model swaps. Those experiments are retained in `CHANGELOG.md` for traceability.
 
-The current implementation is the v0.1.37 guaranteed-housing architecture, carried unchanged into v0.1.38.
+The current implementation is the tested v0.1.37 guaranteed-housing architecture, carried through the v0.1.38 repository cleanup and promoted as v1.0.0.
 
 ## License
 

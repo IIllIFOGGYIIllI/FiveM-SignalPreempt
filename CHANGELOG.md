@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.0.0
+- First public stable release of SignalPreempt.
+- Promotes the tested guaranteed-housing traffic-light architecture from the final v0.1.x development builds.
+- Includes multiplayer intersection synchronisation, 300 m early acquisition, 20 m stable intersection IDs, canonical junction grouping, AI cross-traffic handling, diagnostics, exports, and configurable vehicle/ACE support.
+- Preserves the empirically verified GTA/FiveM traffic-light state mapping: `0 = green`, `1 = red`, `2 = yellow/amber`, `3 = reset`.
+- Public release metadata, README and release package now use v1.0.0 consistently.
+- No runtime behaviour change from the tested v0.1.37 architecture / v0.1.38 repository-cleanup build.
+
 ## v0.1.38
 - Repository/documentation maintenance release built on the tested v0.1.37 runtime.
 - Rewrote `README.md` around the current guaranteed-housing architecture instead of obsolete world-swap/proxy experiments.
