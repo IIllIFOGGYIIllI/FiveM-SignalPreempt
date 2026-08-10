@@ -1,123 +1,295 @@
-# SignalPreempt v0.1.15
+# SignalPreempt v0.1.38
 
-Standalone emergency vehicle traffic signal pre-emption for FiveM.
+Standalone emergency-vehicle traffic-signal pre-emption for FiveM.
 
-SignalPreempt detects the signalised intersection an authorised emergency vehicle is approaching, requests server-synchronised priority, controls the relevant traffic signals, manages conflicting ambient AI traffic, and restores normal GTA traffic control after the emergency vehicle clears the junction.
+SignalPreempt detects a signalised junction ahead of an eligible emergency vehicle, establishes a server-owned priority lease, places conflicting approaches on red, gives the emergency vehicle's roadway green after an all-red clearance phase, and then returns the intersection to normal GTA control after the vehicle clears it.
 
-## Features
+## Current status
 
-- Standalone FiveM resource — no ESX or QBCore dependency
-- Emergency-vehicle and driver validation
-- Siren-based automatic activation
-- Direction-aware intersection acquisition
-- Early look-ahead detection for upcoming signalised junctions
-- Server-synchronised intersection locking and pre-emption state
-- All-red clearance phase before priority
-- Green priority for the emergency vehicle's roadway
-- Red conflicting approaches
-- Ambient AI cross-traffic braking
-- Automatic recovery and release
-- Multi-vehicle intersection lease handling
-- Custom emergency-vehicle support
-- Debug and diagnostic commands
-- Startup version banner read from `fxmanifest.lua`
+v0.1.38 is a documentation/repository-maintenance release built directly on the tested v0.1.37 runtime.
 
-## Install
+No traffic-control, AI, acquisition, networking, intersection-grouping, or signal-housing behaviour was changed in v0.1.38.
 
-1. Copy the `SignalPreempt` folder into your server's `resources` directory.
-2. Add `ensure SignalPreempt` to `server.cfg`.
-3. Restart the resource or start the server.
+Current tested architecture:
 
-The resource folder name should remain exactly:
+- 300 m client intersection acquisition.
+- 340 m server request-distance ceiling.
+- 20 m stable intersection identity grid.
+- Canonical grouping for large multi-head intersections.
+- 1.2 second all-red clearance before priority green.
+- Direct native control only for `prop_traffic_01a` and `prop_traffic_01b`.
+- `prop_traffic_01d` is never directly passed to `SetEntityTrafficlightOverride`.
+- Guaranteed-housing normalisation for streamed `prop_traffic_01d`.
+- Supplemental ambient AI cross-traffic braking.
+- Server-owned intersection leases and multiplayer state broadcast.
+- Optional ACE permission gate.
+- Optional manual emitter integration for custom lighting resources.
+
+## Verified traffic-light state mapping
+
+SignalPreempt intentionally uses the values repeatedly verified in-game on the target FiveM/GTA build:
+
+```text
+0 = GREEN
+1 = RED
+2 = YELLOW / AMBER
+3 = RESET / NO OVERRIDE
+```
+
+Do not change these values solely to match a different enum ordering documented elsewhere unless the target game build has been tested and confirmed to behave differently.
+
+## `prop_traffic_01d` handling
+
+Directly overriding `prop_traffic_01d` was confirmed to produce unwanted low-mounted/ghost traffic-light lamps.
+
+The current implementation uses a housing-first replacement strategy:
+
+```text
+streamed prop_traffic_01d detected
+        ↓
+load prop_traffic_01b
+        ↓
+create a full replacement 01b at the exact source transform
+        ↓
+verify that the replacement entity exists
+        ↓
+mark it persistent, visible, frozen and long-LOD
+        ↓
+only then hide the source 01d map model
+```
+
+If the replacement housing disappears, SignalPreempt removes the source model hide before rebuilding the replacement. This prevents the resource from intentionally leaving a traffic-light position with only a lamp/corona and no physical housing.
+
+The original `01d` remains detection-only. Active signal state is applied to the verified `01b` replacement.
+
+Broad/world-sized model swaps are disabled:
+
+```text
+ModelSwapZones = {}
+```
+
+## Installation
+
+Copy the resource into your FiveM resources directory using the folder name exactly:
 
 ```text
 SignalPreempt
 ```
 
-## Current traffic-light handling
+Then add:
 
-Vanilla `prop_traffic_01d` has a GTA rendering quirk: directly applying the traffic-light override can expose an unwanted low-mounted lamp/corona.
-
-SignalPreempt therefore does **not** directly override `prop_traffic_01d` during normal operation. When an affected `01d` signal must be controlled, SignalPreempt temporarily swaps that local map instance to a compatible vanilla `prop_traffic_01b` proxy, controls the proxy, and restores the original `01d` when pre-emption ends.
-
-Directly controlled vanilla models currently include:
-
-```text
-prop_traffic_01a
-prop_traffic_01b
+```cfg
+ensure SignalPreempt
 ```
 
-`prop_traffic_01d` remains available for intersection detection and is handled through the proxy system.
+to `server.cfg`.
 
-## Traffic-light state mapping
+A successful startup should show the SignalPreempt version banner. With the current architecture the broad swap registration count should be zero.
 
-SignalPreempt uses the FiveM/GTA traffic-light override values:
+## Vehicle eligibility
 
-```text
-0 = Red
-1 = Amber
-2 = Green
-3 = Reset / no override
+By default, GTA emergency-class vehicles are allowed:
+
+```lua
+Config.Vehicle.AllowEmergencyClass = true
 ```
 
-## Startup log
+Custom models can be explicitly allowed or denied in `config.lua`:
 
-On resource start, the server console displays the current version from `fxmanifest.lua`, for example:
+```lua
+AllowedModels = {
+    -- [`your_custom_model`] = true,
+},
 
-```text
-SignalPreempt | Version v0.1.15
-Emergency Vehicle Traffic Signal Pre-emption
-Resource started successfully.
+DeniedModels = {
+    -- [`policeold1`] = true,
+},
 ```
 
-## Diagnostic commands
+The driver must normally be in the driver seat and the siren must be active.
 
-### `/spdebug`
-Toggles world-space intersection and signal diagnostics.
+## Activation and emitter integration
 
-### `/spstatus`
-Shows current emergency-vehicle eligibility, siren state, qualification state, active request, and detected intersection.
+Normal automatic activation uses the vehicle siren.
 
-### `/spinspect`
-Lists nearby traffic-light objects and reports whether each is controlled directly, through the proxy system, or not controlled.
-
-
-### `/spproxycompare`
-With no active pre-emption and the siren off, compares the configured `prop_traffic_01d` proxy candidates one after another. Each candidate is shown green for five seconds and its model dimensions are printed to F8 so pole/arm/head alignment can be compared directly.
-
-### `/spproxies`
-Lists currently active `prop_traffic_01d` proxy swaps.
-
-### `/spprobe`
-Runs an isolated test of the `01d` proxy strategy near the closest compatible signal.
-
-### `/spcleanup`
-Restores active proxy swaps and resets directly controlled traffic-light objects back to normal GTA control.
-
-## Custom emergency lighting resources
-
-A client lighting resource can explicitly set the SignalPreempt emitter state:
+Manual/custom-lighting integration is available through:
 
 ```lua
 exports['SignalPreempt']:SetEmitterEnabled(true)
 exports['SignalPreempt']:SetEmitterEnabled(false)
 ```
 
-You can query local state with:
+Manual command support is disabled by default:
 
 ```lua
-local active = exports['SignalPreempt']:IsPreemptionActive()
-local intersection = exports['SignalPreempt']:GetCurrentIntersection()
+Config.Activation.AllowManualEmitter = false
 ```
 
-## Configuration
+If enabled, the default command is:
 
-Primary tuning values are in `config.lua`, including acquisition distance, lateral detection width, signal cluster radius, signal heading/alignment threshold, AI traffic stopping distance, emergency vehicle/model allow-lists, and clearance/priority/recovery timings.
+```text
+/signalpreempt
+```
 
-## Compatibility notes
+## Exports
 
-SignalPreempt deliberately avoids controlling player-driven civilian vehicles, emergency-class vehicles in the AI braking layer, mission/scripted vehicles by default, and networked vehicles the local client does not control. This reduces the chance of interfering with pursuit resources and other scripted vehicle behaviour.
+### `SetEmitterEnabled(state)`
 
-## Version history
+Allows another resource to explicitly enable or disable the local SignalPreempt emitter state.
 
-See `CHANGELOG.md` for patch-by-patch development history.
+### `IsPreemptionActive()`
+
+Returns whether the local client currently has an active pre-emption request/intersection.
+
+### `GetCurrentIntersection()`
+
+Returns the local client's current active intersection data when available.
+
+## Server synchronisation
+
+Intersection ownership is coordinated server-side.
+
+The server:
+
+- validates request data and request distance;
+- normalises the approach axis;
+- creates a time-limited intersection lease;
+- allows same-road compatible requesters to share the lease;
+- rejects conflicting approach claims while the lease is active;
+- broadcasts clearance/priority state to clients;
+- removes stale leases when requesters release, disconnect, or expire.
+
+Current defaults:
+
+```text
+LeaseSeconds               4
+RefreshMs               1000
+MaxRequestDistance       340 m
+SameRoadAlignmentThreshold 0.65
+```
+
+## Intersection detection
+
+SignalPreempt combines physical traffic-light objects with GTA traffic-light road-node look-ahead.
+
+Important defaults:
+
+```text
+MaxAcquireDistance             300 m
+ClusterRadius                   36 m
+IntersectionIdGrid              20 m
+CanonicalSearchRadius           48 m
+IntersectionControlRadius       42 m
+IntersectionControlFringeRadius 60 m
+LightPoolRadius                420 m
+```
+
+Canonical grouping is used so large intersections whose corner/mast-arm heads fall into several raw clusters can still resolve to one physical junction.
+
+## Signal control
+
+Direct-safe override models:
+
+```text
+prop_traffic_01a
+prop_traffic_01b
+```
+
+Detection-only / non-direct models include:
+
+```text
+prop_traffic_01d
+prop_traffic_02a
+prop_traffic_02b
+prop_traffic_03a
+prop_traffic_03b
+prop_traffic_lightset_01
+```
+
+Both `01a` and `01b` active states are periodically refreshed while an intersection is controlled.
+
+## AI cross-traffic
+
+FiveM's traffic-light override does not reliably force every ambient driver to obey a scripted red signal, so SignalPreempt includes supplemental AI handling.
+
+By default it avoids:
+
+- emergency vehicles;
+- mission entities;
+- vehicles containing players;
+- vehicles the local client cannot network-control.
+
+This is intended to reduce interference with pursuit/mission resources while still helping ambient cross-traffic stop for the pre-empted junction.
+
+## ACE permission gate
+
+ACE checking is disabled by default.
+
+To enable it:
+
+```lua
+Config.Server.RequireAce = true
+Config.Server.AcePermission = 'signalpreempt.use'
+```
+
+Example `server.cfg` permission:
+
+```cfg
+add_ace group.leo signalpreempt.use allow
+```
+
+## Diagnostic commands
+
+The diagnostic commands are intended for development/troubleshooting and can be run from the client console/chat as appropriate.
+
+| Command | Purpose |
+|---|---|
+| `/spstatus` | Current vehicle eligibility, siren/emitter state, request, candidate and active intersection information. |
+| `/spinspect` | Lists nearby recognised traffic-light props, models, coordinates and control mode. |
+| `/spdecisions` | Prints the live per-head priority/conflict classification and desired traffic-light state. |
+| `/spfallbacks` | Lists guaranteed `01d` replacement housings and source-hide state. |
+| `/spprobe` | Cycles a nearby clean `01b` through reset/green/red/yellow/reset for diagnostics. |
+| `/spcleanup` | Resets loaded direct-safe traffic-light overrides. |
+| `/spswaps` | Reports configured broad model-swap definitions/zones; current builds should report zero active zones. |
+| `/spproxies` | Backwards-compatible alias for the model-swap diagnostic command. |
+| `/spdebug` | Toggles debug drawing when debug command access is enabled. |
+
+`/spfallbacks` healthy entries should show a valid replacement housing entity and `hiddenSource=true` only after that housing exists.
+
+## Performance defaults
+
+```text
+ClientTickMs             150
+LightPoolRefreshMs       350
+LightPoolRadius          420 m
+SignalApplyMs            200
+ActiveLightResolveMs     450
+AITrafficMs              250
+01d housing scan         100 ms
+01d replacement LOD     1000
+```
+
+## Resource layout
+
+```text
+SignalPreempt/
+├── client/
+│   └── main.lua
+├── server/
+│   └── main.lua
+├── config.lua
+├── fxmanifest.lua
+├── README.md
+├── CHANGELOG.md
+└── .gitignore
+```
+
+## Development history
+
+SignalPreempt went through several approaches to `prop_traffic_01d`, including direct override, temporary proxies, visual shells, broad model swaps, and per-pole model swaps. Those experiments are retained in `CHANGELOG.md` for traceability.
+
+The current implementation is the v0.1.37 guaranteed-housing architecture, carried unchanged into v0.1.38.
+
+## License
+
+No license file is included in this repository. Add a licence only after deciding the terms under which SignalPreempt should be distributed or reused.

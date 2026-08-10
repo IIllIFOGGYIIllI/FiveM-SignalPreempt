@@ -27,14 +27,46 @@ Config.Activation = {
 -- Automatic intersection acquisition.
 Config.Detection = {
     -- How far ahead SignalPreempt starts looking for a signalised junction.
-    MaxAcquireDistance = 210.0,
+    MaxAcquireDistance = 300.0,
     MinAcquireDistance = 10.0,
     MaxLateralOffset = 38.0,
     LateralPenalty = 2.25,
     ClusterRadius = 36.0,
     MinSignals = 2,
     ReleaseBehindDistance = 24.0,
-    IntersectionIdGrid = 10.0,
+    -- Stable server/inter-client intersection identity grid.
+    --
+    -- 10 m was too fine for large junctions: the early traffic-light-node centre and
+    -- the later prop-derived canonical centre could differ by only ~3 m yet fall on
+    -- opposite rounding boundaries (e.g. 21:19 vs 20:20). A 20 m identity grid keeps
+    -- those representations under one lease while the precise centre is still retained
+    -- separately for signal selection, distance checks and approach geometry.
+    IntersectionIdGrid = 20.0,
+
+    -- v0.1.28 canonical intersection grouping.
+    --
+    -- A seed-facing cluster can represent only one edge of a large junction. SignalPreempt
+    -- now performs a second deterministic pass around that raw cluster centre so the
+    -- north/south/east/west signal groups resolve to one physical intersection.
+    CanonicalizeIntersections = true,
+    CanonicalSearchRadius = 48.0,
+    CanonicalMaxSignalRadius = 34.0,
+    CanonicalMaxSpan = 64.0,
+    CanonicalMaxVerticalSpan = 12.0,
+
+    -- Once a canonical centre is known, this radius is used to resolve the actual signal
+    -- objects controlled for that junction. Keeping it separate from ClusterRadius avoids
+    -- needing to enlarge the seed detector and accidentally merge neighbouring junctions.
+    IntersectionControlRadius = 42.0,
+
+    -- Some large GTA junctions place an additional mast-arm / side-mounted head just
+    -- outside the core control radius. Do not widen the acquisition cluster; instead
+    -- allow a one-hop control fringe. A fringe light is included only when it is close
+    -- to an already-confirmed core light, which is safer than blindly controlling every
+    -- traffic light inside a large circle.
+    IntersectionControlFringeRadius = 60.0,
+    IntersectionControlLinkRadius = 34.0,
+    IntersectionControlMaxVerticalOffset = 12.0,
 
     -- Road-node look-ahead lets the resource identify signalised junctions before the
     -- physical traffic-light props have streamed into the client's object pool.
@@ -45,12 +77,12 @@ Config.Detection = {
     -- eligible emergency vehicle is responding. This makes the node look-ahead useful
     -- before the physical traffic-light props enter the local object pool.
     RequestPathNodesAhead = true,
-    PathRequestExtraDistance = 35.0,
-    PathRequestPadding = 42.0,
+    PathRequestExtraDistance = 80.0,
+    PathRequestPadding = 60.0,
 
     -- Probe the road corridor rather than only a single centreline. Multi-lane roads
     -- often place the traffic-light node on an adjacent lane.
-    NodeProbeStartDistance = 24.0,
+    NodeProbeStartDistance = 36.0,
     NodeProbeStep = 6.0,
     NodeLateralOffsets = { 0.0, 7.0, -7.0, 14.0, -14.0 },
     NodeSearchType = 1,
@@ -63,11 +95,16 @@ Config.Detection = {
 
 -- Signal phasing.
 Config.Signals = {
-    -- Official GTA/FiveM traffic-light override values:
-    -- 0 = red, 1 = amber, 2 = green, 3 = no override/reset.
-    RedState = 0,
-    YellowState = 1,
-    GreenState = 2,
+    -- Empirically verified on the user's current FiveM/GTA build and the vanilla
+    -- traffic-light props used by SignalPreempt:
+    -- 0 = green, 1 = red, 2 = amber/yellow, 3 = reset/no override.
+    --
+    -- Note: current Cfx native documentation lists a different enum ordering, but
+    -- repeated in-game tests on these props showed state 2 rendering amber while
+    -- state 0 renders green. SignalPreempt follows the observed game behaviour here.
+    GreenState = 0,
+    RedState = 1,
+    YellowState = 2,
     ResetState = 3,
 
     -- All approaches are held red briefly before the priority approach receives green.
@@ -98,27 +135,36 @@ Config.Signals = {
         'prop_traffic_01b',
     },
 
-    -- prop_traffic_01d has a model-specific rendering artifact when the native traffic
-    -- light override is applied directly: GTA exposes an extra low-mounted lamp/corona.
-    -- SignalPreempt therefore swaps only the local 01d instance to a compatible vanilla
-    -- traffic-light proxy while pre-emption is active, controls the proxy, then restores
-    -- the original model when the intersection is released.
-    ProxyModels = {
-        ['prop_traffic_01d'] = {
-            -- 01b is now the default geometry proxy. 01a removed the ghost lamps but
-            -- its pole/assembly geometry did not line up cleanly with 01d.
-            model = 'prop_traffic_01b',
-            radius = 1.35,
-
-            -- Used by /spproxycompare so both safe candidates can be compared in one test.
-            candidates = {
-                'prop_traffic_01b',
-                'prop_traffic_01a',
-            },
-        },
+    -- Some vanilla heads can visually fall dark even though the requested override
+    -- state is still cached. Reassert the configured direct-safe models while an
+    -- intersection is actively controlled.
+    RefreshOverrideModels = {
+        'prop_traffic_01a',
+        'prop_traffic_01b',
     },
+    RefreshOverrideMs = 400,
 
-    ProxyLoadTimeoutMs = 2500,
+    -- Legacy model-swap definition retained for diagnostics/future map-specific
+    -- experimentation only. No swap zones are configured in the current architecture,
+    -- so no broad/world model swap is registered at runtime.
+    WorldModelSwaps = {
+        ['prop_traffic_01d'] = 'prop_traffic_01b',
+    },
+    ModelSwapZones = {},
+
+    -- v0.1.37 guaranteed-housing normalisation.
+    --
+    -- Create and verify the clean 01b housing FIRST. Only after that object exists
+    -- do we register an exact-location model hide for the source 01d. If the clean
+    -- housing ever disappears, the hide is removed before rebuilding it so GTA can
+    -- never be left with a lamp/corona and no physical signal housing.
+    Stubborn01dFallback = true,
+    Stubborn01dScanMs = 100,
+    Stubborn01dHideRadius = 2.25,
+    Stubborn01dQuantize = 0.5,
+    Stubborn01dSessionPersistent = true,
+    Stubborn01dProxyLodDistance = 1000,
+
 
     -- Detection-only / integrated assemblies that SignalPreempt never forces.
     NoOverrideModels = {
@@ -153,7 +199,7 @@ Config.AITraffic = {
 Config.Server = {
     LeaseSeconds = 4,
     RefreshMs = 1000,
-    MaxRequestDistance = 285.0,
+    MaxRequestDistance = 340.0,
     SameRoadAlignmentThreshold = 0.65,
 
     -- Optional ACE gate. Example server.cfg line when enabled:
@@ -164,9 +210,10 @@ Config.Server = {
 
 Config.Performance = {
     ClientTickMs = 150,
-    LightPoolRefreshMs = 900,
-    LightPoolRadius = 320.0,
+    LightPoolRefreshMs = 350,
+    LightPoolRadius = 420.0,
     SignalApplyMs = 200,
+    ActiveLightResolveMs = 450,
     AITrafficMs = 250,
 }
 
