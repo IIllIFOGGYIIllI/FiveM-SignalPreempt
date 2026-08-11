@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.0.1
+- Added the SignalPreempt Non-Commercial Source Licence v1.0.
+- Permits free use on private/public FiveM servers and modification for personal/server use.
+- Permits non-commercial redistribution when the licence and attribution are retained and modifications are clearly identified.
+- Explicitly permits use on monetised FiveM servers provided SignalPreempt itself is not sold, separately paywalled, or bundled as a paid resource.
+- Prohibits selling SignalPreempt, paid distribution/resource bundles, and presenting redistributed copies as original work without separate written permission.
+- Added warranty, liability, trademark, termination, severability, and separate-commercial-permission terms.
+- Updated README licensing guidance and public-release metadata.
+- No traffic-pre-emption runtime behaviour changed from v1.0.0.
+
 ## v1.0.0
 - First public stable release of SignalPreempt.
 - Promotes the tested guaranteed-housing traffic-light architecture from the final v0.1.x development builds.

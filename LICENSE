@@ -1,21 +1,152 @@
-MIT License
+SignalPreempt Non-Commercial Source Licence
+Version 1.0 — 11 August 2026
 
-Copyright (c) 2026 FOGGY
+Copyright (c) 2026 SignalPreempt copyright holders.
+All rights reserved except as expressly granted by this licence.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+IMPORTANT: This is a custom source-available licence. It is not an
+OSI-approved open-source licence.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+1. DEFINITIONS
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+"Software" means the SignalPreempt source code, configuration files,
+documentation, and other files distributed with this licence.
+
+"Licensor" means the copyright holder or copyright holders who have the
+authority to license the Software.
+
+"Modified Version" means any work based on, adapted from, translated from,
+or otherwise modifying the Software.
+
+"Commercial Distribution" means selling, licensing for a fee, renting,
+charging for access to, or including the Software or a Modified Version in
+a paid product, paid resource pack, paid download, paid subscription, or
+other transaction where payment is required to obtain the Software or the
+Modified Version.
+
+2. PERMITTED USE
+
+Subject to this licence, the Licensor grants you a worldwide,
+non-exclusive, royalty-free licence to:
+
+a. download, copy, and use the Software;
+b. run the Software on private or public FiveM servers;
+c. modify the Software for your own or your server's use; and
+d. redistribute the Software or a Modified Version on a non-commercial
+   basis, provided that all conditions in Section 3 are followed.
+
+A FiveM server may accept donations or otherwise be monetised. That alone
+does not constitute Commercial Distribution under this licence, provided
+that the Software itself is not sold, separately paywalled, or included as
+a paid resource or paid package.
+
+3. CONDITIONS ON REDISTRIBUTION
+
+If you redistribute the Software or a Modified Version, you must:
+
+a. include this licence in full;
+b. retain all existing copyright, attribution, and licence notices;
+c. clearly identify SignalPreempt as the original project;
+d. state prominently if you have modified the Software;
+e. not represent the Software or a Modified Version as your original work;
+f. not use the SignalPreempt name, branding, or logo in a way that implies
+   endorsement of your fork, product, server, or service by the original
+   project; and
+g. provide recipients with access to the corresponding source code for the
+   version you distribute, at no additional charge.
+
+You may use the name "SignalPreempt" only as reasonably necessary to give
+the attribution required by this section or to truthfully describe
+compatibility or origin.
+
+4. COMMERCIAL RESTRICTIONS
+
+Without separate written permission from the Licensor, you may not:
+
+a. sell the Software or any Modified Version;
+b. require payment to download or receive the Software or a Modified
+   Version;
+c. include the Software or a Modified Version in a paid resource pack,
+   paid bundle, paid subscription, paid membership benefit, or other paid
+   distribution;
+d. offer the Software or a Modified Version as a paid hosted product,
+   managed product, or software-as-a-service product where the Software is
+   a material part of what the customer is paying for; or
+e. sublicense the Software under terms that permit any activity prohibited
+   by this licence.
+
+Paid installation, configuration, server administration, or other
+professional services are not prohibited merely because those services
+interact with SignalPreempt, provided the customer is not being charged
+for a copy of SignalPreempt itself and the service does not otherwise
+circumvent this Section.
+
+5. MODIFICATIONS
+
+You may modify the Software for permitted uses. A public Modified Version
+must remain subject to this licence unless the Licensor gives separate
+written permission.
+
+You must not remove or obscure notices that identify the original project
+or its licence.
+
+6. NO TRADEMARK LICENCE
+
+This licence does not grant any trademark, trade name, logo, branding, or
+similar rights, except for the limited attribution and truthful-reference
+uses expressly allowed in Section 3.
+
+7. NO PATENT LICENCE
+
+No patent rights are granted by this licence except to the extent such a
+grant is required by applicable law.
+
+8. TERMINATION
+
+Your rights under this licence terminate automatically if you materially
+breach its terms.
+
+If the breach is curable and you fully cure it within 30 days after
+becoming aware of it, your rights are automatically reinstated as of the
+date of cure. Repeated or deliberate violations may still be pursued by
+the Licensor to the extent permitted by law.
+
+9. NO WARRANTY
+
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+AND "AS AVAILABLE", WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING WITHOUT LIMITATION WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND NON-INFRINGEMENT.
+
+Nothing in this licence excludes, restricts, or modifies any guarantee,
+right, or remedy that cannot lawfully be excluded, restricted, or
+modified.
+
+10. LIMITATION OF LIABILITY
+
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE LICENSOR WILL NOT BE LIABLE
+FOR ANY INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, CONSEQUENTIAL, OR
+PUNITIVE LOSS OR DAMAGE, OR FOR LOSS OF DATA, PROFITS, REVENUE, GOODWILL,
+OR BUSINESS OPPORTUNITY, ARISING OUT OF OR RELATING TO THE SOFTWARE OR
+THIS LICENCE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH LOSS.
+
+Any liability that cannot lawfully be excluded is limited only to the
+extent permitted by applicable law.
+
+11. SEVERABILITY
+
+If any provision of this licence is held unenforceable, the remaining
+provisions continue in effect to the maximum extent permitted by law.
+
+12. SEPARATE COMMERCIAL PERMISSION
+
+The Licensor may grant separate written permission or a separate
+commercial licence for uses that are not permitted by this licence. Such
+permission applies only to the person or entity and use described in that
+written permission.
+
+13. ENTIRE LICENCE
+
+This document states the permissions granted for the Software unless the
+Licensor gives you separate written permission. No failure to enforce a
+provision on one occasion waives the right to enforce it later.

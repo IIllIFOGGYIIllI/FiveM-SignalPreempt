@@ -1,4 +1,4 @@
-# SignalPreempt v1.0.0
+# SignalPreempt v1.0.1
 
 Standalone emergency-vehicle traffic-signal pre-emption for FiveM.
 
@@ -6,9 +6,7 @@ SignalPreempt detects a signalised junction ahead of an eligible emergency vehic
 
 ## Current status
 
-v1.0.0 is the first public stable release of SignalPreempt.
-
-It promotes the tested v0.1.37 runtime architecture and the completed v0.1.38 repository/documentation cleanup to the first public release. No traffic-control behaviour was changed solely for the version promotion.
+v1.0.1 is the first post-release maintenance update. It adds the project's custom source-available licence and does not change the tested traffic-pre-emption runtime from v1.0.0.
 
 Current tested architecture:
 
@@ -290,6 +288,19 @@ SignalPreempt went through several approaches to `prop_traffic_01d`, including d
 
 The current implementation is the tested v0.1.37 guaranteed-housing architecture, carried through the v0.1.38 repository cleanup and promoted as v1.0.0.
 
-## License
+## Licence
 
-No license file is included in this repository. Add a licence only after deciding the terms under which SignalPreempt should be distributed or reused.
+SignalPreempt is distributed under the **SignalPreempt Non-Commercial Source Licence v1.0**. See [`LICENSE`](LICENSE) for the complete terms.
+
+In practical terms, the licence allows you to:
+
+- use SignalPreempt on private or public FiveM servers;
+- modify it for your own/server use;
+- redistribute it non-commercially if the full licence and attribution are retained; and
+- use it on monetised FiveM servers, provided SignalPreempt itself is not being sold or separately paywalled.
+
+Without separate written permission, you may not sell SignalPreempt, put it in a paid resource pack/bundle, charge people to obtain it, or redistribute it as though it were your own original work.
+
+This is a **source-available licence, not an OSI-approved open-source licence**, because it restricts commercial distribution.
+
+The `LICENSE` file is the controlling legal text if this summary and the licence differ.
