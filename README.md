@@ -4,6 +4,11 @@ Standalone emergency-vehicle traffic-signal pre-emption for FiveM.
 
 SignalPreempt detects a signalised junction ahead of an eligible emergency vehicle, establishes a server-owned priority lease, places conflicting approaches on red, gives the emergency vehicle's roadway green after an all-red clearance phase, and then returns the intersection to normal GTA control after the vehicle clears it.
 
+## Links
+
+- **Cfx.re Release:** https://forum.cfx.re/t/free-standalone-signalpreempt-emergency-traffic-signal-pre-emption/5420622
+- **GitHub Releases:** https://github.com/IIllIFOGGYIIllI/FiveM-SignalPreempt/releases
+
 ## Current status
 
 v1.0.1 is the first post-release maintenance update. It adds the project's custom source-available licence and does not change the tested traffic-pre-emption runtime from v1.0.0.
